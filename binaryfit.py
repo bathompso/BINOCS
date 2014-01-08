@@ -8,7 +8,7 @@ from scipy import interpolate
 
 # Isochrone comparison kernel
 kernelstr = """
-__kernel void binsub( __global float* iso, __global float* data, __global float* err, __global float* chi, const float chithresh ) {
+__kernel void binsub( __global float* iso, __global float* data, __global float* chi, const float chithresh ) {
 	int m = get_global_id(0);
 	chi[m] = -1.0;
 	float tmpchi = 0.0, thischi = 0.0, totfilt = 0.0;
@@ -16,22 +16,23 @@ __kernel void binsub( __global float* iso, __global float* data, __global float*
 	
 	// Loop through filters and compare star to the model
 	for (int f = 0; f < 17; f++){
-		thischi = (data[f] - iso[23*m+f+6])*(data[f] - iso[23*m+f+6]) / (err[f]*err[f]);
-		if (thischi < chithresh){
+		thischi = 1.0 / (fabs(data[f] - iso[23*m+f+6]) + 0.01);
+		if (thischi > chithresh){
 			if (f < 5){ gubv++; }
 			else if (f < 10){ gsds++; }
 			else if (f < 13){ gnir++; }
 			else{ gmir++; }
+			totfilt++;
 			tmpchi += thischi;
 		}
 	}
 	// See which visual filter set has more matches
 	if (gubv > gsds){ gvis = gubv; }
-	else { gvis = gsds; }
+	else {gvis = gsds; }
 	// See if this comparison has enough filters to be used
 	if (gvis >= 3 && gnir >= 3 && gmir >= 2){
-		totfilt = gvis + gnir + gmir;
-		chi[m] = tmpchi / (totfilt - 2 - 1);
+		tmpchi /= totfilt;
+		chi[m] = tmpchi;
 	}
 }
 """
@@ -249,7 +250,7 @@ context = cl.create_some_context()
 queue = cl.CommandQueue(context)
 program = cl.Program(context, kernelstr).build()
 binsub = program.binsub
-binsub.set_scalar_arg_dtypes([None, None, None, None, np.float32])
+binsub.set_scalar_arg_dtypes([None, None, None, np.float32])
 print "\n\n"
 print "==========================================="
 print "|                BINARYFIT                |"
@@ -434,18 +435,15 @@ for r in range(nruns):
 	
 	# Randomize magnitudes
 	rundata = np.zeros(len(data)*17)
-	runerr = np.zeros(len(data)*17)
 	for e in range(len(data)):
 		rand1 = np.random.rand(17)
 		rand2 = np.random.rand(17)
 		for f in range(17):
 			if data[e][2*f+2] > 80:
 				rundata[17*e+f] = 99.999
-				runerr[17*e+f] = 9.999
 			else:
 				rundata[17*e+f] = data[e][2*f+2] - d - ebv*3.08642*ak[f]
 				rundata[17*e+f] += math.sqrt(-2.0 * math.log(rand1[f])) * math.cos(2.0 * math.pi * rand2[f]) * data[e][2*f+3]
-				runerr[17*e+f] = data[e][2*f+3]
 				
 	# Plot running fit
 	if plotstatus == 1:
@@ -462,8 +460,6 @@ for r in range(nruns):
 		# Copy out this star from rundata
 		thisdata = rundata[17*s:17*s+17]
 		d_data = cl.Buffer(context, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=thisdata.astype(np.float32))
-		thiserr = runerr[17*s:17*s+17]
-		d_err = cl.Buffer(context, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=thiserr.astype(np.float32))
 		
 		### COMPARE STARS TO BINARY MODELS
 		# Create output array
@@ -471,16 +467,15 @@ for r in range(nruns):
 		d_chi = cl.Buffer(context, cl.mem_flags.WRITE_ONLY, thischi.nbytes)
 		
 		# Run kernel
-		binsub(queue, thischi.shape, None, d_binary, d_data, d_err, d_chi, 7.0)
+		binsub(queue, thischi.shape, None, d_binary, d_data, d_chi, 10.0)
 		queue.finish()
 		cl.enqueue_copy(queue, thischi, d_chi)
 		
 		# Save results
-		sidx = thischi.argsort()
-		if thischi[sidx[len(sidx)-1]] >= 0:
-			bidx = np.searchsorted(thischi[sidx], [-0.01,], side='right')[0]
-			results[s, 0, r] = sidx[bidx]
-			results[s, 1, r] = thischi[sidx[bidx]]
+		sindex = thischi.argsort()
+		if thischi[sindex[len(sindex)-1]] > 0:
+			results[s, 0, r] = sindex[len(sindex)-1]
+			results[s, 1, r] = thischi[sindex[len(sindex)-1]]
 		else:
 			results[s, 0, r] = -1
 			results[s, 1, r] = -1.0
@@ -492,16 +487,15 @@ for r in range(nruns):
 		d_chi = cl.Buffer(context, cl.mem_flags.WRITE_ONLY, thischi.nbytes)
 		
 		# Run kernel
-		binsub(queue, thischi.shape, None, d_single, d_data, d_err, d_chi, 14.0)
+		binsub(queue, thischi.shape, None, d_single, d_data, d_chi, 1.0)
 		queue.finish()
 		cl.enqueue_copy(queue, thischi, d_chi)
 		
 		# Save results
-		sidx = thischi.argsort()
-		if thischi[sidx[len(sidx)-1]] >= 0:
-			bidx = np.searchsorted(thischi[sidx], [-0.01,], side='right')[0]
-			sresults[s, 0, r] = sidx[bidx]
-			sresults[s, 1, r] = thischi[sidx[bidx]]
+		sindex = thischi.argsort()
+		if thischi[sindex[len(sindex)-1]] > 0:
+			sresults[s, 0, r] = sindex[len(sindex)-1]
+			sresults[s, 1, r] = thischi[sindex[len(sindex)-1]]
 		else:
 			sresults[s, 0, r] = -1
 			sresults[s, 1, r] = -1.0
