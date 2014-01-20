@@ -53,7 +53,7 @@ def minterp(original, dm):
 			continue
 			
 		# See if star is bluest yet
-		if bv[c] < minbv:
+		if bv[c] < minbv and bv[c] < 4:
 			minbv = bv[c]
 			bindex = c
 		
@@ -66,7 +66,7 @@ def minterp(original, dm):
 			toindex = c-4
 			
 		# Emergency break (mass degeneracy)
-		if abs(original[c][1] - original[c+1][1]) < 0.001:
+		if abs(original[c][1] - original[c+1][1]) < 0.0005:
 			toindex = c-4
 			
 	# End turn-off loop
