@@ -1,7 +1,9 @@
-binaryfit
-=========
+BINOCS
+======
+(Binary INformation from Open Clusters using SEDs)
+--------------------------------------------------
 
-binaryfit is a suite of python codes that facilitate binary star detection in open clusters. A paper detailing the inner workings of the main binaryfit routine, as well as initial results for several open clusters is in prep.
+BINOCS is a suite of python codes that facilitate binary star detection in open clusters. A paper detailing the inner workings of the main binaryfit routine, as well as initial results for several open clusters is in prep.
 
 Dependencies
 ------------
