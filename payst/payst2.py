@@ -112,6 +112,7 @@ if len(comargs) > 2:
 		if '#' in line:
 			continue
 		line_split = line.split()
+		if len(line_split) == 0: continue
 		thisfile = open(prefix+line_split[0], 'r')
 		thislines = thisfile.read().splitlines()
 		thisfile.close()
@@ -142,6 +143,7 @@ if len(comargs) > 2:
 		if '#' in optlines[o]:
 			continue
 		tmp = optlines[o].split()
+		if len(tmp) == 0: continue
 		f = open(prefix+tmp[0], 'r')
 		datalines = f.read().splitlines()
 		f.close()
