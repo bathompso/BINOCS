@@ -109,8 +109,7 @@ if len(comargs) > 2:
 	optlines = optfile.read().splitlines()
 	optfile.close()
 	for line in optlines:
-		if '#' in line:
-			continue
+		if '#' in line: continue
 		line_split = line.split()
 		if len(line_split) == 0: continue
 		thisfile = open(prefix+line_split[0], 'r')
