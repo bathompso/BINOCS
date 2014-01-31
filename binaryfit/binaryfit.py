@@ -579,29 +579,6 @@ for s in range(len(data)):
 		
 out.close()
 
-# Plot final mass distribution
-gplotx = []
-gploty = []
-gsize = []
-df = open(dataname+"--qdist.txt", "w")
-print "\nWriting q distribution data to '%s--qdist.txt'." % (dataname)
-for x in range(len(gmass)):
-	totstars = sum(grid[x,:])
-	if totstars == 0: continue
-	for y in range(len(gq)):
-		if grid[x,y] == 0: continue
-		gplotx.append(gmass[x])
-		gploty.append(gq[y])
-		gsize.append((float(grid[x,y])/totstars)*500.0)
-		print >>df, "%4.1f %3.1f %6.4f %6d" % (gmass[x], gq[y], float(grid[x,y])/float(totstars), totstars)
-plt.scatter(gplotx, gploty, s=gsize, c=gsize)
-plt.axis([0, 2.2, -0.02, 1.02])
-plt.xlabel("Stellar Mass (M_o)")
-plt.ylabel("Mass Ratio   q")
-#plt.show()
-df.close()
-
-
 print "\n\n"
 
 
