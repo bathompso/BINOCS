@@ -417,17 +417,22 @@ d_single = cl.Buffer(context, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PT
 d_binary = cl.Buffer(context, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=binary.astype(np.float32))
 
 ### Begin loop over fitting runs
+# Choose ETA printing frequency, based on total number of runs
+if nruns < 200: p = 10
+elif nruns < 500: p = 30
+elif nruns < 1000: p = 50
+else: p = 100
 start_time = time()
 results = np.zeros((len(data), 2, nruns))
 sresults = np.zeros((len(data), 2, nruns))
 for r in range(nruns):
 	if r < 1: print "Run %3d of %3d ..." % (r+1, nruns)
-	elif (r % 10) == 9:
+	elif (r % p) == (p-1):
 		time_perloop = (time() - start_time) / r
 		time_left = ((nruns - r) * time_perloop)
-		if time_left < 100:
+		if time_left < 99:
 			print "Run %3d of %3d ...  ETA: %2d sec." % (r+1, nruns, round(time_left))
-		elif time_left < 6000:
+		elif time_left < 5900:
 			print "Run %3d of %3d ...  ETA: %2d min." % (r+1, nruns, round(time_left/60.0))
 		else:
 			print "Run %3d of %3d ...  ETA: %4.1f hrs." % (r+1, nruns, time_left/3600.0)
