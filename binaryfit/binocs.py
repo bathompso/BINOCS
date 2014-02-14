@@ -1,4 +1,4 @@
-##### BINOCS SUBROUTINE PYTHON MODULE
+##### BINOCS SUBROUTINE PYTHON MODULE #######################################################
 # This module holds the main routines used in the BINOCS project.
 # Functions here are called by binaryfit.py
 
@@ -11,18 +11,69 @@ from scipy import interpolate
 import math
 
 
+
+##### OPTION FILE READIN SUBROUTINE ########################################################
+# Description:	Reads in option file to dictionary
+# Input:		optname -- name of input option file
+# Output:		Dictionary containing all important parameters for binaryfit routine
+def readopt(optname):
+	filter_names = ['U', 'B', 'V', 'R', 'I', 'SU', 'SG', 'SR', 'SI', 'SZ', 'J', 'H', 'K', 'B1', 'B2', 'B3', 'B4']
+	ak = [1.531, 1.324, 1.000, 0.748, 0.482, 1.593, 1.199, 0.858, 0.639, 0.459, 0.282, 0.175, 0.112, 0.0627, 0.0482, 0.0482, 0.0482]
+	# Declare some variables in case they aren't in the option file
+	fidname = ''
+
+	# Read in options from file
+	of = open(optname, "r")
+	optlines = of.read().splitlines()
+	for l in optlines:
+		if l.find('#') >= 0: continue
+		tmp = [t.strip(' \t\n\r') for t in l.split("=")]
+		if tmp[0] == "data": dataname = tmp[1]
+		if tmp[0] == "iso":  isoname = tmp[1]
+		if tmp[0] == "fid":  fidname = tmp[1]
+		if tmp[0] == "dm":   dm = float(tmp[1])
+		if tmp[0] == "age":  age = float(tmp[1])
+		if tmp[0] == "m-M":  d = float(tmp[1])
+		if tmp[0] == "ebv":  ebv = float(tmp[1])
+		if tmp[0] == "nruns": nruns = int(tmp[1])
+		if tmp[0] == "plot": plotstatus = int(tmp[1])
+		
+	# Print out imported parameters
+	print "\nParameters:"
+	print "    data:",dataname
+	print "    iso:",isoname
+	print "    dm =",dm
+	print "    age =",age
+	print "    m-M =",d
+	print "    E(B-V) =",ebv
+
+	# Print run parameters to file
+	pf = open(dataname+"--notes.txt", "w")
+	print >>pf, "ISO: %s" % (isoname)
+	print >>pf, "FID: %s" % (fidname)
+	print >>pf, "AGE: %6.3f" % (age)
+	print >>pf, "DIS: %5.2f" % (d)
+	print >>pf, "EBV: %4.2f" % (ebv)
+	pf.close()
+	
+	# Save option parameters to return structure
+	options = {'data': dataname, 'iso': isoname, 'fid': fidname, 'dm': dm, 'age': age, 'm-M': d, 'ebv': ebv, 'nruns': nruns, 'ak': ak, 'filternames': filter_names}
+	return options
+
+
+
 ##### DATAFILE READIN SUBROUTINE ###########################################################
 # Description:	Reads in star data from a magnitude file created by PAYST
-# Input:		dataname -- name of PAYST data file
+# Input:		options -- parameter dictionary from readopt
 # Output:		List of star data. Elements in each row are:
 #				0-1: RA / Dec Coordinates
 #				2-35: UBVRIugrizJHK[3.6][4.5][5.8][8.0] Magnitudes + Uncertainties
 #				36: 2MASS ID, or a similarly generated ID from PAYST
 #				37: RV Variability index -- (2) = Binary, (1) = Single, (0) = Unknown, 
 #											(-1) = Non-Member
-def readdata(dataname):
+def readdata(options):
 	# Read in star data from file
-	datafile = open(dataname, 'r')
+	datafile = open(options['data'], 'r')
 	datalines = datafile.read().splitlines()
 	datafile.close()
 	data = []
@@ -42,138 +93,29 @@ def readdata(dataname):
 	
 ##### ISOCHRONE READIN SUBROUTINE ##########################################################
 # Description:	Read in isochrone data from a file created by makeiso
-# Input:		isoname -- name of makeiso isochrone file
-#				age -- age of isochrone to be used in comparison
+# Input:		options -- parameter dictionary from readopt
 # Output:		List of isochrone data. Values are the same as in each line of makeiso file.
-def readiso(isoname, age):
+def readiso(options):
 	# Read in isochrone from file
-	isofile = open(isoname, 'r')
+	isofile = open(options['iso'], 'r')
 	isolines = isofile.read().splitlines()
 	isofile.close()
 	oiso = []
 	for iline in isolines:
 		tmp = iline.split()
 		new_tmp = [float(i) for i in tmp]
-		if abs(new_tmp[0] - age) <= 0.001:
+		if abs(new_tmp[0] - options['age']) <= 0.001:
 			oiso.append(new_tmp)
 	return oiso
 
 
 
-##### FIDUCIAL ISOCHRONE ADJUSTMENT SUBROUTINE ##############################################
-# Description:	Adjusts original isochrone data to empirical ridgelines
-# Input:		singles -- list of isochrone data from readiso
-#				fidname -- name of file containing fiducial ridgelines
-#				fidmag -- filter index of fiducial magnitude (0 - 16)
-#				fidcol -- list of pairs of filter indexes of fiducial colors (0 - 16)
-#				ak -- list of extinction values (A_X / A_V) for each filter
-#				d -- cluster distance modulus, (m-M)_0
-#				ebv -- cluster reddening, E(B-V)
-#				age -- age of isochrone to be used in comparison
-#				dataname -- name of PAYST datafile
-# Output:		List of isochrone data for stars with empirically-adjusted magnitudes.
-#					Values are the same as in each line of makeiso file.
-def fidiso(singles, fidname, fidmag, fidcol, ak, d, ebv, age, dataname):
-	# Create new list to hold adjusted isochrone
-	adj = []
-	for r in range(len(singles)/23):
-		for c in range(6): adj.append(singles[23*r+c])
-		for c in range(6, 23): adj.append(99.999)
-		
-	# Read in fiducial file
-	ff = open(fidname, "r")
-	fidlines = ff.read().splitlines()
-	fiddata = [f.split('\t') for f in fidlines]
-	
-	# Adjust fiducial data to absolute scale
-	for l in range(len(fiddata)):
-		# Adjust for distance and extinction
-		fiddata[l][0] = float(fiddata[l][0]) - d - ak[fidmag[0]] / (ak[1] - ak[2]) * ebv
-		# Adjust for reddening
-		for c in range(len(fidcol)): fiddata[l][c+1] = float(fiddata[l][c+1]) - (ak[fidcol[c][0]] - ak[fidcol[c][1]]) / (ak[1] - ak[2]) * ebv
-	
-	# Loop through isochrone and save fiducial magnitude
-	for r in range(len(singles)/23): adj[23*r+6+fidmag[0]] = singles[23*r+6+fidmag[0]]
-	
-	colcomplete = np.zeros(len(fidcol))
-	# Loop through colors multiple times to adjust all necessary filters
-	for l in range(3):
-		# Loop through all colors specified in fiducial file
-		for c in range(len(fidcol)):
-			if colcomplete[c] == 1: continue
-			# Check to see if one of the magnitudes necessary has already been solved for.
-			goodmag = [i for i in range(len(adj)/23) if adj[23*i+6+fidcol[c][0]] < 80]
-			goodcol = [i for i in range(len(adj)/23) if adj[23*i+6+fidcol[c][1]] < 80]
-			
-			# Neither magnitude has data, skip it
-			if len(goodmag) == 0 and len(goodcol) == 0: continue
-			
-			# Both magnitudes have been completely solved for
-			if len(goodmag) > 0 and len(goodcol) > 0:
-				colcomplete[c] = 1
-				continue
-				
-			# Compute interpolation for colors
-			datmag = [float(f[0]) for f in fiddata if float(f[c+1]) > -1000]
-			datcol = [float(f[c+1]) for f in fiddata if float(f[c+1]) > -1000]
-			fit = interpolate.interp1d(datmag, datcol, kind=3)
-			
-			# Magnitude filter solved for, but not color
-			if len(goodmag) > 0:
-				for s in range(len(adj)/23):
-					if adj[23*s+6+fidmag[0]] < min(datmag) or adj[23*s+6+fidmag[0]] > max(datmag): continue
-					adj[23*s+6+fidcol[c][1]] = adj[23*s+6+fidcol[c][0]] - fit(adj[23*s+6+fidmag[0]])
-				
-			# Color filter solved for, but not magnitude
-			if len(goodcol) > 0:
-				for s in range(len(adj)/23):
-					if adj[23*s+6+fidmag[0]] < min(datmag) or adj[23*s+6+fidmag[0]] > max(datmag): continue
-					adj[23*s+6+fidcol[c][0]] = adj[23*s+6+fidcol[c][1]] + fit(adj[23*s+6+fidmag[0]])
-					
-	# Loop through filters and complete any missing entries
-	for f in range(6, 23):
-		# Find all values where this magnitude is already solved for
-		goodmag = [i for i in range(len(adj)/23) if adj[23*i+f] < 80]
-		
-		# No fiducial for this filter
-		if len(goodmag) == 0:
-			for i in range(len(adj)/23): adj[23*i+f] = singles[23*i+f]
-			
-		# There was a fiducial for this filter
-		else:
-			# From the last index on, fill values
-			lastidx = max(goodmag)
-			for i in range(lastidx+1, len(adj)/23):
-				prevdiff = singles[23*i+f] - singles[23*(i-1)+f]
-				adj[23*i+f] = prevdiff + adj[23*(i-1)+f]
-			# From the first index and below, fill values
-			firstidx = min(goodmag)
-			for i in range(firstidx-1, -1, -1):
-				prevdiff = singles[23*i+f] - singles[23*(i+1)+f]
-				adj[23*i+f] = prevdiff + adj[23*(i+1)+f]
-	
-	# Return new isochrone
-	npadj = np.zeros(len(adj))
-	for i in range(len(adj)): npadj[i] = adj[i]
-	
-	ndirsplit = dataname.split('/')
-	fidoutname = "%s/iso_%s.fid.dat" % ('/'.join(ndirsplit[0:len(ndirsplit)-1]), ndirsplit[len(ndirsplit)-2])
-	fio = open(fidoutname, "w")
-	for s in range(len(singles)/23):
-		print >>fio, "%6.3f %7.4f %7.4f %7.4f %7.4f %7.4f %7.4f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f" % (age, npadj[23*s], npadj[23*s+1], npadj[23*s+2], npadj[23*s+3], npadj[23*s+4], npadj[23*s+5], npadj[23*s+6], npadj[23*s+7], npadj[23*s+8], npadj[23*s+9], npadj[23*s+10], npadj[23*s+11], npadj[23*s+12], npadj[23*s+13], npadj[23*s+14], npadj[23*s+15], npadj[23*s+16], npadj[23*s+17], npadj[23*s+18], npadj[23*s+19], npadj[23*s+20], npadj[23*s+21], npadj[23*s+22])
-	fio.close()
-	print "\nAdjusted isochrone to fiducial sequence."
-	
-	return npadj
-	
-
-
 ##### ISOCHRONE MASS INTERPOLATION SUBROUTINE ##############################################
 # Description:	Interpolates original isochrone into a more fine mass grid
-# Input:		original -- original isochrone data from readiso or fidiso
+# Input:		original -- original isochrone data from readiso
 #				dm -- Mass increment between resulting isochrone points
-# Output:		List of isochrone data for stars in new finely-gridded isochrone. Values
-#					are the same as in each line of makeiso file.
+# Output:		1D NumPy array of isochrone data for stars in new finely-gridded isochrone.
+#					Each star has 23 entries in array, same as values in makeiso line.
 def minterp(original, dm):
 	# Find turnoff in B-V
 	toindex = -1
@@ -250,23 +192,135 @@ def minterp(original, dm):
 	print "\nIsochrone contains",len(npsingles)/23,"single stars."
 	
 	return npsingles
+
+
+
+##### FIDUCIAL ISOCHRONE ADJUSTMENT SUBROUTINE ##############################################
+# Description:	Adjusts original isochrone data to empirical ridgelines
+# Input:		singles -- 1D Numpy array from minterp
+#				options -- parameter dictionary from readopt
+# Output:		1D NumPy array of isochrone data for stars with empirically-adjusted
+#					magnitudes.
+def fidiso(singles, options):
+	# Read in parameters from dictionary
+	ak = options['ak']
+	
+	# Check to see if this operation is necessary
+	if options['fid'] == '': return singles
+
+	# Create new list to hold adjusted isochrone
+	adj = []
+	for r in range(len(singles)/23):
+		for c in range(6): adj.append(singles[23*r+c])
+		for c in range(6, 23): adj.append(99.999)
+		
+	# Read in fiducial file
+	ff = open(options['fid'], "r")
+	fidlines = ff.read().splitlines()
+	fiddata = [fidlines[x].replace('\t',' ').split() for x in range(1,len(fidlines))]
+	
+	# Read in fiducial magnitude and colors
+	tmp = fidlines[0].replace('\t',' ').split()
+	fidmag = [x for x in range(len(options['filternames'])) if (options['filternames'])[x] == tmp[0]]
+	fidcol = []
+	for f in range(1,len(tmp)):
+		tmpcol = tmp[f].split('-')
+		c = [x for x in range(len(options['filternames'])) if (options['filternames'])[x] == tmpcol[0]]
+		m = [x for x in range(len(options['filternames'])) if (options['filternames'])[x] == tmpcol[1]]
+		fidcol.append([c[0], m[0]])
+	
+	# Adjust fiducial data to absolute scale
+	for l in range(len(fiddata)-1):
+		# Adjust for distance and extinction
+		fiddata[l][0] = float(fiddata[l][0]) - options['m-M'] - ak[fidmag[0]] / (ak[1] - ak[2]) * options['ebv']
+		# Adjust for reddening
+		for c in range(len(fidcol)): fiddata[l][c+1] = float(fiddata[l][c+1]) - (ak[fidcol[c][0]] - ak[fidcol[c][1]]) / (ak[1] - ak[2]) * options['ebv']
+	
+	# Loop through isochrone and save fiducial magnitude
+	for r in range(len(singles)/23): adj[23*r+6+fidmag[0]] = singles[23*r+6+fidmag[0]]
+	
+	colcomplete = np.zeros(len(fidcol))
+	# Loop through colors multiple times to adjust all necessary filters
+	for l in range(3):
+		# Loop through all colors specified in fiducial file
+		for c in range(len(fidcol)):
+			if colcomplete[c] == 1: continue
+			# Check to see if one of the magnitudes necessary has already been solved for.
+			goodmag = [i for i in range(len(adj)/23) if adj[23*i+6+fidcol[c][0]] < 80]
+			goodcol = [i for i in range(len(adj)/23) if adj[23*i+6+fidcol[c][1]] < 80]
+			
+			# Neither magnitude has data, skip it
+			if len(goodmag) == 0 and len(goodcol) == 0: continue
+			
+			# Both magnitudes have been completely solved for
+			if len(goodmag) > 0 and len(goodcol) > 0:
+				colcomplete[c] = 1
+				continue
+				
+			# Compute interpolation for colors
+			datmag = [float(f[0]) for f in fiddata if float(f[c+1]) > -1000]
+			datcol = [float(f[c+1]) for f in fiddata if float(f[c+1]) > -1000]
+			fit = interpolate.interp1d(datmag, datcol, kind=3)
+			
+			# Magnitude filter solved for, but not color
+			if len(goodmag) > 0:
+				for s in range(len(adj)/23):
+					if adj[23*s+6+fidmag[0]] < min(datmag) or adj[23*s+6+fidmag[0]] > max(datmag): continue
+					adj[23*s+6+fidcol[c][1]] = adj[23*s+6+fidcol[c][0]] - fit(adj[23*s+6+fidmag[0]])
+				
+			# Color filter solved for, but not magnitude
+			if len(goodcol) > 0:
+				for s in range(len(adj)/23):
+					if adj[23*s+6+fidmag[0]] < min(datmag) or adj[23*s+6+fidmag[0]] > max(datmag): continue
+					adj[23*s+6+fidcol[c][0]] = adj[23*s+6+fidcol[c][1]] + fit(adj[23*s+6+fidmag[0]])
+					
+	# Loop through filters and complete any missing entries
+	for f in range(6, 23):
+		# Find all values where this magnitude is already solved for
+		goodmag = [i for i in range(len(adj)/23) if adj[23*i+f] < 80]
+		
+		# No fiducial for this filter
+		if len(goodmag) == 0:
+			for i in range(len(adj)/23): adj[23*i+f] = singles[23*i+f]
+			
+		# There was a fiducial for this filter
+		else:
+			# From the last index on, fill values
+			lastidx = max(goodmag)
+			for i in range(lastidx+1, len(adj)/23):
+				prevdiff = singles[23*i+f] - singles[23*(i-1)+f]
+				adj[23*i+f] = prevdiff + adj[23*(i-1)+f]
+			# From the first index and below, fill values
+			firstidx = min(goodmag)
+			for i in range(firstidx-1, -1, -1):
+				prevdiff = singles[23*i+f] - singles[23*(i+1)+f]
+				adj[23*i+f] = prevdiff + adj[23*(i+1)+f]
+	
+	# Return new isochrone
+	npadj = np.zeros(len(adj))
+	for i in range(len(adj)): npadj[i] = adj[i]
+	
+	ndirsplit = options['data'].split('/')
+	fidoutname = "%s/iso_%s.fid.dat" % ('/'.join(ndirsplit[0:len(ndirsplit)-1]), ndirsplit[len(ndirsplit)-2])
+	fio = open(fidoutname, "w")
+	for s in range(len(singles)/23):
+		print >>fio, "%6.3f %7.4f %7.4f %7.4f %7.4f %7.4f %7.4f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f" % (options['age'], npadj[23*s], npadj[23*s+1], npadj[23*s+2], npadj[23*s+3], npadj[23*s+4], npadj[23*s+5], npadj[23*s+6], npadj[23*s+7], npadj[23*s+8], npadj[23*s+9], npadj[23*s+10], npadj[23*s+11], npadj[23*s+12], npadj[23*s+13], npadj[23*s+14], npadj[23*s+15], npadj[23*s+16], npadj[23*s+17], npadj[23*s+18], npadj[23*s+19], npadj[23*s+20], npadj[23*s+21], npadj[23*s+22])
+	fio.close()
+	print "\nAdjusted isochrone to fiducial sequence."
+	
+	return npadj
 	
 	
 	
 ##### SYNTHETIC BINARY CREATION SUBROUTINE #################################################
 # Description:	Flux-combines single isochrone stars into model binaries
 # Input:		singles -- list of isochrone data from readiso or fidiso
-#				dataname -- name of PAYST data file
-#				isoname -- name of makeiso isochrone file
-#				dm -- Mass increment between interpolated isochrone points
-#				age -- age of isochrone to be used in comparison
-#				fidcol -- filter index of fiducial magnitude (0 - 16), or empty list for
-#					no empirical correction.
+#				options -- parameter dictionary from readopt
 # Output:		List of binary star data. Elements in each row are:
 #					0: Primary Mass
 #					1: Secondary Mass
 #					2-18: UBVRIugrizJHK[3.6][4.5][5.8][8.0] magnitudes
-def makebin(singles, dataname, isoname, dm, age, fidcol):
+def makebin(singles, options):
 	binary = []
 	# Loop through primary stars
 	for p in range(len(singles)/23):
@@ -301,11 +355,11 @@ def makebin(singles, dataname, isoname, dm, age, fidcol):
 	
 	print "\nCreated",len(npbinary)/23,"binary models for comparison."
 	# Print created binaries to file
-	ndirsplit = dataname.split('/')
-	dirsplit = isoname.split('/')
+	ndirsplit = options['data'].split('/')
+	dirsplit = options['iso'].split('/')
 	namesplit = dirsplit[len(dirsplit)-1].split('.')
-	if len(fidcol) == 0: isooutname = "%s/%s.m%03d.a%05d.bin" % ('/'.join(ndirsplit[0:len(ndirsplit)-1]), '.'.join(namesplit[0:len(namesplit)-1]), dm*100, age*1000)
-	else: isooutname = "%s/iso_%s.m%03d.a%05d.bin" % ('/'.join(ndirsplit[0:len(ndirsplit)-1]), ndirsplit[len(ndirsplit)-2], dm*100, age*1000)
+	if options['fid'] == '': isooutname = "%s/%s.m%03d.a%05d.bin" % ('/'.join(ndirsplit[0:len(ndirsplit)-1]), '.'.join(namesplit[0:len(namesplit)-1]), options['dm']*100, options['age']*1000)
+	else: isooutname = "%s/iso_%s.m%03d.a%05d.bin" % ('/'.join(ndirsplit[0:len(ndirsplit)-1]), ndirsplit[len(ndirsplit)-2], options['dm']*100, options['age']*1000)
 	isoo = open(isooutname, "w")
 	for b in range(len(binary)/23):
 		print >>isoo, "%7.4f %7.4f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f" % (binary[23*b], binary[23*b+1], binary[23*b+6], binary[23*b+7], binary[23*b+8], binary[23*b+9], binary[23*b+10], binary[23*b+11], binary[23*b+12], binary[23*b+13], binary[23*b+14], binary[23*b+15], binary[23*b+16], binary[23*b+17], binary[23*b+18], binary[23*b+19], binary[23*b+20], binary[23*b+21], binary[23*b+22])
@@ -321,10 +375,7 @@ def makebin(singles, dataname, isoname, dm, age, fidcol):
 # Input:		singles -- list of isochrone data from readiso or fidiso
 #				binary -- synthetic binary models from makebin
 #				data -- star data array from readdata
-#				nruns -- number of fit iterations
-#				d -- cluster distance modulus, (m-M)_0
-#				ebv -- cluster reddening, E(B-V)
-#				ak -- list of extinction values (A_X / A_V) for each filter
+#				options -- parameter dictionary from readopt
 # Output:		4-D array of mass determination information. 4 indexes are:
 #					0: Star index, aligns with element of data array
 #					1: 0 = fit chi value
@@ -332,7 +383,10 @@ def makebin(singles, dataname, isoname, dm, age, fidcol):
 #					2: Iteration index
 #					3: 0 = fitting to all binary models
 #					   1 = fitting to only single star models
-def sedfit(singles, binary, data, nruns, d, ebv, ak):
+def sedfit(singles, binary, data, options):
+	# Read data out of option dictionary
+	ak = options['ak']
+	nruns = options['nruns']
 
 	# Isochrone comparison kernel
 	kernelstr = """
@@ -407,7 +461,7 @@ def sedfit(singles, binary, data, nruns, d, ebv, ak):
 				if data[e][2*f+2] > 80:
 					rundata[17*e+f] = 99.999
 				else:
-					rundata[17*e+f] = data[e][2*f+2] - d - ebv*3.08642*ak[f]
+					rundata[17*e+f] = data[e][2*f+2] - options['m-M'] - options['ebv'] * 3.08642 * ak[f]
 					rundata[17*e+f] += math.sqrt(-2.0 * math.log(rand1[f])) * math.cos(2.0 * math.pi * rand2[f]) * data[e][2*f+3]
 				
 		### Begin loop over stars
