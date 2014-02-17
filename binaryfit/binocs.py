@@ -8,8 +8,6 @@ import numpy as np
 import pyopencl as cl
 from time import time
 from scipy import interpolate
-import math
-
 
 
 ##### OPTION FILE READIN SUBROUTINE ########################################################
@@ -337,7 +335,7 @@ def makebin(singles, options):
 			mags = np.zeros(17)
 			diff = 0
 			for m in range(len(mags)):
-				mags[m] = -2.5 * math.log10( 10.0**(-1.0*singles[23*p+m+6]/2.5) + 10.0**(-1.0*singles[23*s+m+6]/2.5) )
+				mags[m] = -2.5 * np.log10( 10.0**(-1.0*singles[23*p+m+6]/2.5) + 10.0**(-1.0*singles[23*s+m+6]/2.5) )
 				if (abs(mags[m] - singles[23*p+m+6]) < 0.001): diff += 1
 			# Skip adding this binary if it is not different enough from other binaries	
 			if (diff > 3): continue
@@ -462,7 +460,7 @@ def sedfit(singles, binary, data, options):
 					rundata[17*e+f] = 99.999
 				else:
 					rundata[17*e+f] = data[e][2*f+2] - options['m-M'] - options['ebv'] * 3.08642 * ak[f]
-					rundata[17*e+f] += math.sqrt(-2.0 * math.log(rand1[f])) * math.cos(2.0 * math.pi * rand2[f]) * data[e][2*f+3]
+					rundata[17*e+f] += np.sqrt(-2.0 * np.log(rand1[f])) * np.cos(2.0 * np.pi * rand2[f]) * data[e][2*f+3]
 				
 		### Begin loop over stars
 		for s in range(len(data)):

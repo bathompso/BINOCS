@@ -1,8 +1,14 @@
 # Import modules
 import numpy as np
-import sys, math, binocs
+import sys, binocs
 
-print "\n\n========== STAGE 3: MASS ACCURACY ===========\n"
+print "\n\n"
+print "==========================================="
+print "|                BINARYFIT                |"
+print "|              MASS ACCURACY              |"
+print "|             by Ben Thompson             |"
+print "==========================================="
+
 # Read in data from files
 options = binocs.readopt((sys.argv)[1])
 data = binocs.readdata(options)
@@ -39,7 +45,6 @@ for f in range(17):
 	for i in range(len(bad)):
 		nei = np.argsort([abs(gbins[x] - gbins[bad[i]]) for x in good])[0]
 		errs[bad[i],f] = errs[good[nei],f]	
-#for i in range(len(gbins)): print "%7.3f  %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f " % (gbins[i], errs[i,0], errs[i,1], errs[i,2], errs[i,3], errs[i,4], errs[i,5], errs[i,6], errs[i,7], errs[i,8], errs[i,9], errs[i,10], errs[i,11], errs[i,12], errs[i,13], errs[i,14], errs[i,15], errs[i,16])
 		
 # Loop through data and determine what filters are available in input data
 printf = []
@@ -67,8 +72,8 @@ for l in range(len(binary)/23):
 	rand2 = np.random.rand(17)
 	for f in range(17):
 		if printf[f] == 1:
-			binline.append(binary[23*l+6+f] + options['m-M'] + options['ebv'] * 3.08642 * ak[f] + math.sqrt(-2.0 * math.log(rand1[f])) * math.cos(2.0 * math.pi * rand2[f]) * errs[bin,f])
-			binline.append(errs[bin,f])
+			binline.append(binary[23*l+6+f] + options['m-M'] + options['ebv'] * 3.08642 * ak[f] + np.sqrt(-2.0 * np.log(rand1[f])) * np.cos(2.0 * np.pi * rand2[f]) * errs[bin,f] * 2.0)
+			binline.append(errs[bin,f] * 2.0)
 		else:
 			binline.append(99.999)
 			binline.append(9.999)
@@ -79,6 +84,7 @@ massresults = binocs.sedfit(singles, binary, bindata, options)
 
 # Print out results of isochrone single star fitting
 of = open(options['data']+"--mass.txt", 'w')
+fitmass = np.zeros([len(bindata), 2])
 for i in range(len(bindata)):
 	opri = binary[23*i]
 	osec = binary[23*i+1]
@@ -91,9 +97,39 @@ for i in range(len(bindata)):
 	bfitmsec = np.median([binary[23*bfitidx[x]+1] for x in range(len(bfitchi)) if bfitchi[x] > 0])
 	bruns = len([x for x in range(len(bfitchi)) if bfitchi[x] > 0])
 	
+	fitmass[i,0], fitmass[i,1] = bfitmpri, bfitmsec
+	
 	if osec > 0: secpcterr = (osec-bfitmsec)/osec*100
 	elif bfitmsec > 0: secpcterr = 100
 	else: secpcterr = 0
 	
 	print >>of, "%6.3f %6.3f  %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f  %6.3f %6.3f %6.1f %6.1f  %3d" % (opri, osec, bindata[i][2], bindata[i][4], bindata[i][6], bindata[i][8], bindata[i][10], bindata[i][12], bindata[i][14], bindata[i][16], bindata[i][18], bindata[i][20], bindata[i][22], bindata[i][24], bindata[i][26], bindata[i][28], bindata[i][30], bindata[i][32], bindata[i][34], bfitmpri, bfitmsec, (opri-bfitmpri)/opri*100, secpcterr, bruns)
 of.close()	
+
+
+# MINIMUM MASS RATIO
+# Find all single models
+sidx = [x for x in range(len(bindata)) if binary[23*x+1] == 0]
+smass = [binary[23*x] for x in sidx]
+# Compute bins of single stars in steps of 0.1 M_sun
+ds = 0.05
+sbins = [min(smass) + ds * x for x in range(int((max(smass) - min(smass)) / ds) + 1)]
+minq = np.zeros(len(sbins))
+# Loop through bins and compute maximum returned mass ratio
+print " MASS   MIN Q"
+for s in range(len(sbins)):
+	minfitq = max([fitmass[x,1] / fitmass[x,0] for x in range(len(bindata)) if binary[23*x+1] == 0 and fitmass[x,0] > 0 and binary[23*x] >= sbins[s] and binary[23*x] < sbins[s] + ds])
+	minmodq = min([binary[23*x+1] / binary[23*x] for x in range(len(bindata)) if binary[23*x] >= sbins[s] and binary[23*x] < sbins[s] + ds and binary[23*x+1] > 0])
+	minq[s] = max([minfitq, minmodq])
+	print "%5.2f   %5.3f" % (sbins[s], minq[s])
+
+
+
+
+
+
+
+
+
+
+
