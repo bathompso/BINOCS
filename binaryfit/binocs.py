@@ -17,8 +17,9 @@ from scipy import interpolate
 def readopt(optname):
 	filter_names = ['U', 'B', 'V', 'R', 'I', 'SU', 'SG', 'SR', 'SI', 'SZ', 'J', 'H', 'K', 'B1', 'B2', 'B3', 'B4']
 	ak = [1.531, 1.324, 1.000, 0.748, 0.482, 1.593, 1.199, 0.858, 0.639, 0.459, 0.282, 0.175, 0.112, 0.0627, 0.0482, 0.0482, 0.0482]
-	# Declare some variables in case they aren't in the option file
-	fidname = ''
+	
+	# Declare empty dictionary
+	options = {'data': '', 'iso': '', 'fid': '', 'dm': 0.0, 'age': 0.0, 'm-M': 0.0, 'ebv': 0.0, 'nruns': 0, 'dr': 0.0, 'ak': ak, 'filternames': filter_names}
 
 	# Read in options from file
 	of = open(optname, "r")
@@ -26,36 +27,25 @@ def readopt(optname):
 	for l in optlines:
 		if l.find('#') >= 0: continue
 		tmp = [t.strip(' \t\n\r') for t in l.split("=")]
-		if tmp[0] == "data": dataname = tmp[1]
-		if tmp[0] == "iso":  isoname = tmp[1]
-		if tmp[0] == "fid":  fidname = tmp[1]
-		if tmp[0] == "dm":   dm = float(tmp[1])
-		if tmp[0] == "age":  age = float(tmp[1])
-		if tmp[0] == "m-M":  d = float(tmp[1])
-		if tmp[0] == "ebv":  ebv = float(tmp[1])
-		if tmp[0] == "nruns": nruns = int(tmp[1])
-		if tmp[0] == "plot": plotstatus = int(tmp[1])
+		if tmp[0] == "data": options['data'] = tmp[1]
+		if tmp[0] == "iso":  options['iso'] = tmp[1]
+		if tmp[0] == "fid":  options['fid'] = tmp[1]
+		if tmp[0] == "dm":   options['dm'] = float(tmp[1])
+		if tmp[0] == "age":  options['age'] = float(tmp[1])
+		if tmp[0] == "m-M":  options['m-M'] = float(tmp[1])
+		if tmp[0] == "ebv":  options['ebv'] = float(tmp[1])
+		if tmp[0] == "nruns": options['nruns'] = int(tmp[1])
+		if tmp[0] == "dr": options['dr'] = float(tmp[1])
 		
 	# Print out imported parameters
 	print "\nParameters:"
-	print "    data:",dataname
-	print "    iso:",isoname
-	print "    dm =",dm
-	print "    age =",age
-	print "    m-M =",d
-	print "    E(B-V) =",ebv
-
-	# Print run parameters to file
-	pf = open(dataname+"--notes.txt", "w")
-	print >>pf, "ISO: %s" % (isoname)
-	print >>pf, "FID: %s" % (fidname)
-	print >>pf, "AGE: %6.3f" % (age)
-	print >>pf, "DIS: %5.2f" % (d)
-	print >>pf, "EBV: %4.2f" % (ebv)
-	pf.close()
+	print "    data:", options['data']
+	print "    iso:", options['iso']
+	print "    dm =", options['dm']
+	print "    age =", options['age']
+	print "    m-M =", options['m-M']
+	print "    E(B-V) =", options['ebv']
 	
-	# Save option parameters to return structure
-	options = {'data': dataname, 'iso': isoname, 'fid': fidname, 'dm': dm, 'age': age, 'm-M': d, 'ebv': ebv, 'nruns': nruns, 'ak': ak, 'filternames': filter_names}
 	return options
 
 
