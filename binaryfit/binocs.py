@@ -1,6 +1,5 @@
 ##### BINOCS SUBROUTINE PYTHON MODULE #######################################################
 # This module holds the main routines used in the BINOCS project.
-# Functions here are called by binaryfit.py
 
 
 # Import Necessary Modules
