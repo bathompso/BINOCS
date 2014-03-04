@@ -54,7 +54,7 @@ if not os.path.exists(options['data']+"--mass.txt"):
 	# Loop through data and determine what filters are available in input data
 	printf = []
 	for f in range(17):
-		good = [x for x in range(len(data)) if data[x][f] < 80]
+		good = [x for x in range(len(data)) if data[x][2*f+2] < 80]
 		if len(good) == 0: printf.append(0)
 		else: printf.append(1)
 	
@@ -123,8 +123,12 @@ if not os.path.exists(options['data']+"--mass.txt"):
 	# Loop through bins and compute maximum returned mass ratio
 	print " MASS   MIN Q"
 	for s in range(len(sbins)):
-		minfitq = max([fitmass[x,1] / fitmass[x,0] for x in range(len(bindata)) if binary[23*x+1] == 0 and fitmass[x,0] > 0 and binary[23*x] >= sbins[s] and binary[23*x] < sbins[s] + ds])
-		minmodq = min([binary[23*x+1] / binary[23*x] for x in range(len(bindata)) if binary[23*x] >= sbins[s] and binary[23*x] < sbins[s] + ds and binary[23*x+1] > 0])
+		fitq = [fitmass[x,1] / fitmass[x,0] for x in range(len(bindata)) if binary[23*x+1] == 0 and fitmass[x,0] > 0 and binary[23*x] >= sbins[s] and binary[23*x] < sbins[s] + ds]
+		if len(fitq) > 0: minfitq = max(fitq)
+		else: minfitq = 0.0
+		modq = [binary[23*x+1] / binary[23*x] for x in range(len(bindata)) if binary[23*x] >= sbins[s] and binary[23*x] < sbins[s] + ds and binary[23*x+1] > 0]
+		if len(modq) > 0: minmodq = min(modq)
+		else: minmodq = 0.0
 		minq[s] = max([minfitq, minmodq])
 		print "%5.2f   %5.3f" % (sbins[s], minq[s])
 
