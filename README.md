@@ -8,9 +8,9 @@ BINOCS is a suite of python codes that facilitate binary star detection in open 
 Dependencies
 ------------
 
-Running the included python programs will require Python 2.7 or above, as well as numpy.
+Running the included python programs will require Python 2.7 or above, as well as NumPy.
 
-The binaryfit python routines are parallelized in order to run in a reasonable amount of time. Before running any of these routines, please make sure to install the python modules [ParallelPython](http://parallelpython.com) and [PyOpenCL](http://mathema.tician.de/software/pyopencl/)
+The binaryfit python routines are parallelized in order to run in a reasonable amount of time. Before running any of these routines, please make sure to install the python module [PyOpenCL](http://mathema.tician.de/software/pyopencl/)
 
 Component Codes
 ---------------
