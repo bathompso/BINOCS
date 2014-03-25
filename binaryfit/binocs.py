@@ -393,7 +393,9 @@ def sedfit(singles, binary, data, options):
 				else{ gmir++; }
 				totfilt++;
 				tmpchi += thischi;
-			}
+			} 
+			// If star is more than 2 magnitudes away on this filter it *will not* fit the star. Abort.
+			else if (thischi < 0.5) { break; }
 		}
 		// See which visual filter set has more matches
 		if (gubv > gsds){ gvis = gubv; }
