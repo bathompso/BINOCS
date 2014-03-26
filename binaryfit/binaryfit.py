@@ -1,6 +1,6 @@
 # Import modules
 import numpy as np
-import sys, math, binocs
+import sys, binocs
 	
 	
 print "\n\n"
