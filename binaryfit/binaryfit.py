@@ -1,13 +1,14 @@
 # Import modules
+from __future__ import print_function, division
 import numpy as np
 import sys, binocs
 	
 	
-print "\n\n"
-print "==========================================="
-print "|                BINARYFIT                |"
-print "|             by Ben Thompson             |"
-print "==========================================="
+print("\n\n")
+print("===========================================")
+print("|                BINARYFIT                |")
+print("|             by Ben Thompson             |")
+print("===========================================")
 
 
 # Read in data from files
@@ -29,7 +30,7 @@ results = binocs.sedfit(singles, binary, data, options)
 
 # Compute Initial Results
 # Open file for writing
-print "\nWriting results to '%s--binary.txt'." % (options['data'])
+print("\nWriting results to '%s--binary.txt'." % (options['data']))
 out = open(options['data']+"--binary.txt", "w")
 for s in range(len(data)):
 	starchi = results[s, 1, :, 0]
@@ -75,6 +76,6 @@ for s in range(len(data)):
 		else: bflag = 1
 
 	# Print out star to file
-	print >>out, "%16s %9.5f %9.5f   %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f   %2d %2d %6.3f %6.4f %6.3f %6.4f %5.2f   %6.3f %6.4f %5.2f" % (data[s][36], data[s][0], data[s][1], data[s][2], data[s][4], data[s][6], data[s][8], data[s][10], data[s][12], data[s][14], data[s][16], data[s][18], data[s][20], data[s][22], data[s][24], data[s][26], data[s][28], data[s][30], data[s][32], data[s][34], bflag, data[s][37], mpri, upri, msec, usec, medchi, smass, umass, smchi)
+	print("%16s %9.5f %9.5f   %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f   %2d %2d %6.3f %6.4f %6.3f %6.4f %5.2f   %6.3f %6.4f %5.2f" % (data[s][36], data[s][0], data[s][1], data[s][2], data[s][4], data[s][6], data[s][8], data[s][10], data[s][12], data[s][14], data[s][16], data[s][18], data[s][20], data[s][22], data[s][24], data[s][26], data[s][28], data[s][30], data[s][32], data[s][34], bflag, data[s][37], mpri, upri, msec, usec, medchi, smass, umass, smchi), file=out)
 out.close()
-print "\n\n"
+print("\n\n")

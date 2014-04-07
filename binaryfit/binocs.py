@@ -1,8 +1,10 @@
 ##### BINOCS SUBROUTINE PYTHON MODULE #######################################################
 # This module holds the main routines used in the BINOCS project.
+# c. 08/2013: Ben Thompson <bathompso@gmail.com>
 
 
 # Import Necessary Modules
+from __future__ import print_function, division
 import numpy as np
 import pyopencl as cl
 from time import time
@@ -37,13 +39,13 @@ def readopt(optname):
 		if tmp[0] == "dr": options['dr'] = float(tmp[1])
 		
 	# Print out imported parameters
-	print "\nParameters:"
-	print "    data:", options['data']
-	print "    iso:", options['iso']
-	print "    dm =", options['dm']
-	print "    age =", options['age']
-	print "    m-M =", options['m-M']
-	print "    E(B-V) =", options['ebv']
+	print("\nParameters:")
+	print("    data:", options['data'])
+	print("    iso:", options['iso'])
+	print("    dm =", options['dm'])
+	print("    age =", options['age'])
+	print("    m-M =", options['m-M'])
+	print("    E(B-V) =", options['ebv'])
 	
 	return options
 
@@ -73,7 +75,7 @@ def readdata(options):
 		elif tmp[48] == 'BM' or tmp[48] == 'BLM': new_tmp.append(2)
 		else: new_tmp.append(-1)
 		data.append(new_tmp)
-	print "\nRead in %d stars from file." % (len(data))
+	print("\nRead in %d stars from file." % (len(data)))
 	return data
 	
 	
@@ -134,14 +136,14 @@ def minterp(original, dm):
 	if toindex < 0:
 		toindex = len(bv)-1
 		
-	print "\nTurn-Off Found:"
-	print "    V = ", original[toindex][9]
-	print "    B-V = ", bv[toindex]
+	print("\nTurn-Off Found:")
+	print("    V = ", original[toindex][9])
+	print("    B-V = ", bv[toindex])
 	
 	
 	# Create mass grid
 	cmass = float(int(original[2][1] * 100.0)) / 100.0 + 0.01
-	print "    New Grid:",cmass,"-->",original[toindex][1]
+	print("    New Grid:",cmass,"-->",original[toindex][1])
 	mgrid = [grid[1] for grid in original[0:toindex+4]]
 	newmass = []
 	while cmass < original[toindex][1]:
@@ -176,7 +178,7 @@ def minterp(original, dm):
 	npsingles = np.zeros(len(singles))
 	for i in range(len(singles)): npsingles[i] = singles[i]
 	
-	print "\nIsochrone contains",len(npsingles)/23,"single stars."
+	print("\nIsochrone contains",len(npsingles)/23,"single stars.")
 	
 	return npsingles
 
@@ -197,7 +199,7 @@ def fidiso(singles, options):
 
 	# Create new list to hold adjusted isochrone
 	adj = []
-	for r in range(len(singles)/23):
+	for r in range(len(singles)//23):
 		for c in range(6): adj.append(singles[23*r+c])
 		for c in range(6, 23): adj.append(99.999)
 		
@@ -224,7 +226,7 @@ def fidiso(singles, options):
 		for c in range(len(fidcol)): fiddata[l][c+1] = float(fiddata[l][c+1]) - (ak[fidcol[c][0]] - ak[fidcol[c][1]]) / (ak[1] - ak[2]) * options['ebv']
 	
 	# Loop through isochrone and save fiducial magnitude
-	for r in range(len(singles)/23): adj[23*r+6+fidmag[0]] = singles[23*r+6+fidmag[0]]
+	for r in range(len(singles)//23): adj[23*r+6+fidmag[0]] = singles[23*r+6+fidmag[0]]
 	
 	colcomplete = np.zeros(len(fidcol))
 	# Loop through colors multiple times to adjust all necessary filters
@@ -233,8 +235,8 @@ def fidiso(singles, options):
 		for c in range(len(fidcol)):
 			if colcomplete[c] == 1: continue
 			# Check to see if one of the magnitudes necessary has already been solved for.
-			goodmag = [i for i in range(len(adj)/23) if adj[23*i+6+fidcol[c][0]] < 80]
-			goodcol = [i for i in range(len(adj)/23) if adj[23*i+6+fidcol[c][1]] < 80]
+			goodmag = [i for i in range(len(adj)//23) if adj[23*i+6+fidcol[c][0]] < 80]
+			goodcol = [i for i in range(len(adj)//23) if adj[23*i+6+fidcol[c][1]] < 80]
 			
 			# Neither magnitude has data, skip it
 			if len(goodmag) == 0 and len(goodcol) == 0: continue
@@ -251,30 +253,30 @@ def fidiso(singles, options):
 			
 			# Magnitude filter solved for, but not color
 			if len(goodmag) > 0:
-				for s in range(len(adj)/23):
+				for s in range(len(adj)//23):
 					if adj[23*s+6+fidmag[0]] < min(datmag) or adj[23*s+6+fidmag[0]] > max(datmag): continue
 					adj[23*s+6+fidcol[c][1]] = adj[23*s+6+fidcol[c][0]] - fit(adj[23*s+6+fidmag[0]])
 				
 			# Color filter solved for, but not magnitude
 			if len(goodcol) > 0:
-				for s in range(len(adj)/23):
+				for s in range(len(adj)//23):
 					if adj[23*s+6+fidmag[0]] < min(datmag) or adj[23*s+6+fidmag[0]] > max(datmag): continue
 					adj[23*s+6+fidcol[c][0]] = adj[23*s+6+fidcol[c][1]] + fit(adj[23*s+6+fidmag[0]])
 					
 	# Loop through filters and complete any missing entries
 	for f in range(6, 23):
 		# Find all values where this magnitude is already solved for
-		goodmag = [i for i in range(len(adj)/23) if adj[23*i+f] < 80]
+		goodmag = [i for i in range(len(adj)//23) if adj[23*i+f] < 80]
 		
 		# No fiducial for this filter
 		if len(goodmag) == 0:
-			for i in range(len(adj)/23): adj[23*i+f] = singles[23*i+f]
+			for i in range(len(adj)//23): adj[23*i+f] = singles[23*i+f]
 			
 		# There was a fiducial for this filter
 		else:
 			# From the last index on, fill values
 			lastidx = max(goodmag)
-			for i in range(lastidx+1, len(adj)/23):
+			for i in range(lastidx+1, len(adj)//23):
 				prevdiff = singles[23*i+f] - singles[23*(i-1)+f]
 				adj[23*i+f] = prevdiff + adj[23*(i-1)+f]
 			# From the first index and below, fill values
@@ -290,10 +292,10 @@ def fidiso(singles, options):
 	ndirsplit = options['data'].split('/')
 	fidoutname = "%s/iso_%s.fid.dat" % ('/'.join(ndirsplit[0:len(ndirsplit)-1]), ndirsplit[len(ndirsplit)-2])
 	fio = open(fidoutname, "w")
-	for s in range(len(singles)/23):
-		print >>fio, "%6.3f %7.4f %7.4f %7.4f %7.4f %7.4f %7.4f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f" % (options['age'], npadj[23*s], npadj[23*s+1], npadj[23*s+2], npadj[23*s+3], npadj[23*s+4], npadj[23*s+5], npadj[23*s+6], npadj[23*s+7], npadj[23*s+8], npadj[23*s+9], npadj[23*s+10], npadj[23*s+11], npadj[23*s+12], npadj[23*s+13], npadj[23*s+14], npadj[23*s+15], npadj[23*s+16], npadj[23*s+17], npadj[23*s+18], npadj[23*s+19], npadj[23*s+20], npadj[23*s+21], npadj[23*s+22])
+	for s in range(len(singles)//23):
+		print("%6.3f %7.4f %7.4f %7.4f %7.4f %7.4f %7.4f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f" % (options['age'], npadj[23*s], npadj[23*s+1], npadj[23*s+2], npadj[23*s+3], npadj[23*s+4], npadj[23*s+5], npadj[23*s+6], npadj[23*s+7], npadj[23*s+8], npadj[23*s+9], npadj[23*s+10], npadj[23*s+11], npadj[23*s+12], npadj[23*s+13], npadj[23*s+14], npadj[23*s+15], npadj[23*s+16], npadj[23*s+17], npadj[23*s+18], npadj[23*s+19], npadj[23*s+20], npadj[23*s+21], npadj[23*s+22]), file=fio)
 	fio.close()
-	print "\nAdjusted isochrone to fiducial sequence."
+	print("\nAdjusted isochrone to fiducial sequence.")
 	
 	return npadj
 	
@@ -310,7 +312,7 @@ def fidiso(singles, options):
 def makebin(singles, options):
 	binary = []
 	# Loop through primary stars
-	for p in range(len(singles)/23):
+	for p in range(len(singles)//23):
 		# Add the single star to the array
 		for f in range(23): binary.append(singles[23*p+f])
 	
@@ -340,7 +342,7 @@ def makebin(singles, options):
 	npbinary = np.zeros(len(binary))
 	for i in range(len(binary)): npbinary[i] = binary[i]
 	
-	print "\nCreated",len(npbinary)/23,"binary models for comparison."
+	print("\nCreated",len(npbinary)//23,"binary models for comparison.")
 	# Print created binaries to file
 	ndirsplit = options['data'].split('/')
 	dirsplit = options['iso'].split('/')
@@ -348,10 +350,10 @@ def makebin(singles, options):
 	if options['fid'] == '': isooutname = "%s/%s.m%03d.a%05d.bin" % ('/'.join(ndirsplit[0:len(ndirsplit)-1]), '.'.join(namesplit[0:len(namesplit)-1]), options['dm']*100, options['age']*1000)
 	else: isooutname = "%s/iso_%s.m%03d.a%05d.bin" % ('/'.join(ndirsplit[0:len(ndirsplit)-1]), ndirsplit[len(ndirsplit)-2], options['dm']*100, options['age']*1000)
 	isoo = open(isooutname, "w")
-	for b in range(len(binary)/23):
-		print >>isoo, "%7.4f %7.4f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f" % (binary[23*b], binary[23*b+1], binary[23*b+6], binary[23*b+7], binary[23*b+8], binary[23*b+9], binary[23*b+10], binary[23*b+11], binary[23*b+12], binary[23*b+13], binary[23*b+14], binary[23*b+15], binary[23*b+16], binary[23*b+17], binary[23*b+18], binary[23*b+19], binary[23*b+20], binary[23*b+21], binary[23*b+22])
+	for b in range(len(binary)//23):
+		print("%7.4f %7.4f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f" % (binary[23*b], binary[23*b+1], binary[23*b+6], binary[23*b+7], binary[23*b+8], binary[23*b+9], binary[23*b+10], binary[23*b+11], binary[23*b+12], binary[23*b+13], binary[23*b+14], binary[23*b+15], binary[23*b+16], binary[23*b+17], binary[23*b+18], binary[23*b+19], binary[23*b+20], binary[23*b+21], binary[23*b+22]), file=isoo)
 	isoo.close()
-	print "    Binary models output to '%s'\n" % (isooutname)
+	print("    Binary models output to '%s'\n" % (isooutname))
 	
 	return npbinary
 	
@@ -395,7 +397,7 @@ def sedfit(singles, binary, data, options):
 				tmpchi += thischi;
 			} 
 			// If star is more than 2 magnitudes away on this filter it *will not* fit the star. Abort.
-			else if (thischi < 0.5) { break; }
+			else if (thischi < 0.5 && data[f] < 80) { break; }
 		}
 		// See which visual filter set has more matches
 		if (gubv > gsds){ gvis = gubv; }
@@ -429,16 +431,16 @@ def sedfit(singles, binary, data, options):
 	start_time = time()
 	results = np.zeros((len(data), 2, nruns, 2))
 	for r in range(nruns):
-		if r < 1: print "Run %3d of %3d ..." % (r+1, nruns)
+		if r < 1: print("Run %3d of %3d ..." % (r+1, nruns))
 		elif (r % p) == (p-1):
 			time_perloop = (time() - start_time) / r
 			time_left = ((nruns - r) * time_perloop)
 			if time_left < 99:
-				print "Run %3d of %3d ...  ETA: %2d sec." % (r+1, nruns, round(time_left))
+				print("Run %3d of %3d ...  ETA: %2d sec." % (r+1, nruns, round(time_left)))
 			elif time_left < 5900:
-				print "Run %3d of %3d ...  ETA: %2d min." % (r+1, nruns, round(time_left/60.0))
+				print("Run %3d of %3d ...  ETA: %2d min." % (r+1, nruns, round(time_left/60.0)))
 			else:
-				print "Run %3d of %3d ...  ETA: %4.1f hrs." % (r+1, nruns, time_left/3600.0)
+				print("Run %3d of %3d ...  ETA: %4.1f hrs." % (r+1, nruns, time_left/3600.0))
 
 	
 		# Randomize magnitudes
@@ -461,7 +463,7 @@ def sedfit(singles, binary, data, options):
 		
 			### COMPARE STARS TO BINARY MODELS
 			# Create output array
-			thischi = np.zeros(len(binary)/23).astype(np.float32)
+			thischi = np.zeros(len(binary)//23).astype(np.float32)
 			d_chi = cl.Buffer(context, cl.mem_flags.WRITE_ONLY, thischi.nbytes)
 		
 			# Run kernel
@@ -481,7 +483,7 @@ def sedfit(singles, binary, data, options):
 		
 			### COMPARE STARS TO SINGLE MODELS
 			# Create output array
-			thischi = np.zeros(len(singles)/23).astype(np.float32)
+			thischi = np.zeros(len(singles)//23).astype(np.float32)
 			d_chi = cl.Buffer(context, cl.mem_flags.WRITE_ONLY, thischi.nbytes)
 		
 			# Run kernel
@@ -500,9 +502,9 @@ def sedfit(singles, binary, data, options):
 	
 	# Print out completion message
 	total_time = time() - start_time
-	if total_time < 100: print "\n%3d Runs Complete in %4.1f seconds." % (nruns, total_time)
-	elif total_time < 6000: print "\n%3d Runs Complete in %4.1f minutes." % (nruns, total_time/60.0)
-	else: print "\n%3d Runs Complete in %5.1f hours.\n" % (nruns, total_time/3600.0)
+	if total_time < 100: print("\n%3d Runs Complete in %4.1f seconds." % (nruns, total_time))
+	elif total_time < 6000: print("\n%3d Runs Complete in %4.1f minutes." % (nruns, total_time/60.0))
+	else: print("\n%3d Runs Complete in %5.1f hours.\n" % (nruns, total_time/3600.0))
 	
 	return results
 	
