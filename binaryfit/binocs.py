@@ -19,8 +19,13 @@ def readopt(optname):
 	filter_names = ['U', 'B', 'V', 'R', 'I', 'SU', 'SG', 'SR', 'SI', 'SZ', 'J', 'H', 'K', 'B1', 'B2', 'B3', 'B4']
 	ak = [1.531, 1.324, 1.000, 0.748, 0.482, 1.593, 1.199, 0.858, 0.639, 0.459, 0.282, 0.175, 0.112, 0.0627, 0.0482, 0.0482, 0.0482]
 	
+	# Get path to current option file
+	optdir = '/'.join((optname.split('/'))[0:-1]) + '/'
+	
 	# Declare empty dictionary
-	options = {'data': '', 'iso': '', 'fid': '', 'dm': 0.0, 'age': 0.0, 'm-M': 0.0, 'ebv': 0.0, 'nruns': 0, 'dr': 0.0, 'ak': ak, 'filternames': filter_names}
+	options = dict()
+	options['ak'] = ak
+	options['filternames'] = filter_names
 
 	# Read in options from file
 	of = open(optname, "r")
@@ -28,9 +33,9 @@ def readopt(optname):
 	for l in optlines:
 		if l.find('#') >= 0: continue
 		tmp = [t.strip(' \t\n\r') for t in l.split("=")]
-		if tmp[0] == "data": options['data'] = tmp[1]
-		if tmp[0] == "iso":  options['iso'] = tmp[1]
-		if tmp[0] == "fid":  options['fid'] = tmp[1]
+		if tmp[0] == "data": options['data'] = optdir+tmp[1]
+		if tmp[0] == "iso":  options['iso'] = optdir+tmp[1]
+		if tmp[0] == "fid":  options['fid'] = optdir+tmp[1]
 		if tmp[0] == "dm":   options['dm'] = float(tmp[1])
 		if tmp[0] == "age":  options['age'] = float(tmp[1])
 		if tmp[0] == "m-M":  options['m-M'] = float(tmp[1])
@@ -403,12 +408,12 @@ def sedfit(singles, binary, data, options):
 		if (gubv > gsds){ gvis = gubv; }
 		else {gvis = gsds; }
 		// See if this comparison has enough filters to be used
-		if (gvis >= 3 && gnir >= 3 && gmir >= 2){
+		if (gvis >= %d && gnir >= %d && gmir >= %d){
 			tmpchi /= totfilt;
 			chi[m] = tmpchi;
 		}
 	}
-	"""
+	""" % (3,3,2)
 	
 	# Prepare OpenCL routine
 	context = cl.create_some_context()
