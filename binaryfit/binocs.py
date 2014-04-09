@@ -183,7 +183,7 @@ def minterp(original, dm):
 	npsingles = np.zeros(len(singles))
 	for i in range(len(singles)): npsingles[i] = singles[i]
 	
-	print("\nIsochrone contains",len(npsingles)/23,"single stars.")
+	print("\nIsochrone contains",len(npsingles)//23,"single stars.")
 	
 	return npsingles
 
@@ -384,34 +384,48 @@ def sedfit(singles, binary, data, options):
 
 	# Isochrone comparison kernel
 	kernelstr = """
-	__kernel void binsub( __global float* iso, __global float* data, __global float* chi, const float chithresh ) {
-		int m = get_global_id(0);
-		chi[m] = -1.0;
-		float tmpchi = 0.0, thischi = 0.0, totfilt = 0.0;
-		int gubv = 0, gsds = 0, gvis = 0, gnir = 0, gmir = 0;
+	__kernel void binsub( __global float* iso, __global float* data, __global float* chi, __global int* fit, const float chithresh, const int nmodels ) {
+		int s = get_global_id(0);
+		fit[s] = -1.0;
+		chi[s] = -1.0;
+		float bestchi = -1.0;
+		int bestfit = 0;
+		
+		// Loop through models
+		for (int m = 0; m < nmodels; m++){
+			// Initialize variables for this run
+			float tmpchi = 0.0, thischi = 0.0, totfilt = 0.0;
+			int gubv = 0, gsds = 0, gvis = 0, gnir = 0, gmir = 0;
 	
-		// Loop through filters and compare star to the model
-		for (int f = 0; f < 17; f++){
-			thischi = 1.0 / (fabs(data[f] - iso[23*m+f+6]) + 0.01);
-			if (thischi > chithresh){
-				if (f < 5){ gubv++; }
-				else if (f < 10){ gsds++; }
-				else if (f < 13){ gnir++; }
-				else{ gmir++; }
-				totfilt++;
-				tmpchi += thischi;
-			} 
-			// If star is more than 2 magnitudes away on this filter it *will not* fit the star. Abort.
-			else if (thischi < 0.5 && data[f] < 80) { break; }
+			// Loop through filters and compare star to the model
+			for (int f = 0; f < 17; f++){
+				thischi = 1.0 / (fabs(data[17*s+f] - iso[23*m+f+6]) + 0.01);
+				if (thischi > chithresh){
+					if (f < 5){ gubv++; }
+					else if (f < 10){ gsds++; }
+					else if (f < 13){ gnir++; }
+					else{ gmir++; }
+					totfilt++;
+					tmpchi += thischi;
+				} 
+				// If star is more than 2 magnitudes away on this filter it *will not* fit the star. Abort.
+				else if (thischi < 0.5 && data[17*s+f] < 80) { break; }
+			}
+			// See which visual filter set has more matches
+			if (gubv > gsds){ gvis = gubv; }
+			else {gvis = gsds; }
+			// See if this comparison has enough filters to be used
+			if (gvis >= %d && gnir >= %d && gmir >= %d){
+				// See if this model is better than the previous best
+				if (tmpchi / totfilt > bestchi){
+					bestchi = tmpchi / totfilt;
+					bestfit = m;
+				}
+			}
 		}
-		// See which visual filter set has more matches
-		if (gubv > gsds){ gvis = gubv; }
-		else {gvis = gsds; }
-		// See if this comparison has enough filters to be used
-		if (gvis >= %d && gnir >= %d && gmir >= %d){
-			tmpchi /= totfilt;
-			chi[m] = tmpchi;
-		}
+		// Save best-fit model
+		chi[s] = bestchi;
+		fit[s] = bestfit;
 	}
 	""" % (3,3,2)
 	
@@ -420,7 +434,7 @@ def sedfit(singles, binary, data, options):
 	queue = cl.CommandQueue(context)
 	program = cl.Program(context, kernelstr).build()
 	binsub = program.binsub
-	binsub.set_scalar_arg_dtypes([None, None, None, np.float32])
+	binsub.set_scalar_arg_dtypes([None, None, None, None, np.float32, np.int32])
 	
 	# Copy necessary arrays to device for processing
 	d_single = cl.Buffer(context, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=singles.astype(np.float32))
@@ -441,11 +455,11 @@ def sedfit(singles, binary, data, options):
 			time_perloop = (time() - start_time) / r
 			time_left = ((nruns - r) * time_perloop)
 			if time_left < 99:
-				print("Run %3d of %3d ...  ETA: %2d sec." % (r+1, nruns, round(time_left)))
+				print("Run %3d of %3d ...  ETA: %3d sec." % (r+1, nruns, round(time_left)))
 			elif time_left < 5900:
-				print("Run %3d of %3d ...  ETA: %2d min." % (r+1, nruns, round(time_left/60.0)))
+				print("Run %3d of %3d ...  ETA: %3.1f min." % (r+1, nruns, round(time_left/60)))
 			else:
-				print("Run %3d of %3d ...  ETA: %4.1f hrs." % (r+1, nruns, time_left/3600.0))
+				print("Run %3d of %3d ...  ETA: %3.1f hrs." % (r+1, nruns, time_left/360))
 
 	
 		# Randomize magnitudes
@@ -459,48 +473,44 @@ def sedfit(singles, binary, data, options):
 				else:
 					rundata[17*e+f] = data[e][2*f+2] - options['m-M'] - options['ebv'] * 3.08642 * ak[f]
 					rundata[17*e+f] += np.sqrt(-2.0 * np.log(rand1[f])) * np.cos(2.0 * np.pi * rand2[f]) * data[e][2*f+3]
+		d_data = cl.Buffer(context, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=rundata.astype(np.float32))
 				
-		### Begin loop over stars
-		for s in range(len(data)):
-			# Copy out this star from rundata
-			thisdata = rundata[17*s:17*s+17]
-			d_data = cl.Buffer(context, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=thisdata.astype(np.float32))
+		### COMPARE STARS TO BINARY MODELS
+		# Create output arrays
+		bestchi, bestfit = np.zeros(len(rundata)//17).astype(np.float32), np.zeros(len(rundata)//17).astype(np.int32)
+		d_chi, d_fit = cl.Buffer(context, cl.mem_flags.WRITE_ONLY, bestchi.nbytes), cl.Buffer(context, cl.mem_flags.WRITE_ONLY, bestfit.nbytes)
 		
-			### COMPARE STARS TO BINARY MODELS
-			# Create output array
-			thischi = np.zeros(len(binary)//23).astype(np.float32)
-			d_chi = cl.Buffer(context, cl.mem_flags.WRITE_ONLY, thischi.nbytes)
+		# Run kernel
+		binsub(queue, bestchi.shape, None, d_binary, d_data, d_chi, d_fit, 10.0, len(binary)//23)
+		queue.finish()
+		cl.enqueue_copy(queue, bestchi, d_chi)
+		cl.enqueue_copy(queue, bestfit, d_fit)
 		
-			# Run kernel
-			binsub(queue, thischi.shape, None, d_binary, d_data, d_chi, 10.0)
-			queue.finish()
-			cl.enqueue_copy(queue, thischi, d_chi)
-		
-			# Save results
-			sindex = thischi.argsort()
-			if thischi[sindex[len(sindex)-1]] > 0:
-				results[s, 0, r, 0] = sindex[len(sindex)-1]
-				results[s, 1, r, 0] = thischi[sindex[len(sindex)-1]]
+		# Save results
+		for s in range(len(bestchi)):
+			if bestchi[s] > 0:
+				results[s, 0, r, 0] = bestfit[s]
+				results[s, 1, r, 0] = bestchi[s]
 			else:
 				results[s, 0, r, 0] = -1
 				results[s, 1, r, 0] = -1.0
-			
+				
+		### COMPARE STARS TO SINGLE MODELS
+		# Create output arrays
+		bestchi, bestfit = np.zeros(len(rundata)//17).astype(np.float32), np.zeros(len(rundata)//17).astype(np.int32)
+		d_chi, d_fit = cl.Buffer(context, cl.mem_flags.WRITE_ONLY, bestchi.nbytes), cl.Buffer(context, cl.mem_flags.WRITE_ONLY, bestfit.nbytes)
 		
-			### COMPARE STARS TO SINGLE MODELS
-			# Create output array
-			thischi = np.zeros(len(singles)//23).astype(np.float32)
-			d_chi = cl.Buffer(context, cl.mem_flags.WRITE_ONLY, thischi.nbytes)
+		# Run kernel
+		binsub(queue, bestchi.shape, None, d_single, d_data, d_chi, d_fit, 1.0, len(singles)//23)
+		queue.finish()
+		cl.enqueue_copy(queue, bestchi, d_chi)
+		cl.enqueue_copy(queue, bestfit, d_fit)
 		
-			# Run kernel
-			binsub(queue, thischi.shape, None, d_single, d_data, d_chi, 1.0)
-			queue.finish()
-			cl.enqueue_copy(queue, thischi, d_chi)
-		
-			# Save results
-			sindex = thischi.argsort()
-			if thischi[sindex[len(sindex)-1]] > 0:
-				results[s, 0, r, 1] = sindex[len(sindex)-1]
-				results[s, 1, r, 1] = thischi[sindex[len(sindex)-1]]
+		# Save results
+		for s in range(len(bestchi)):
+			if bestchi[s] > 0:
+				results[s, 0, r, 1] = bestfit[s]
+				results[s, 1, r, 1] = bestchi[s]
 			else:
 				results[s, 0, r, 1] = -1
 				results[s, 1, r, 1] = -1.0
@@ -508,8 +518,8 @@ def sedfit(singles, binary, data, options):
 	# Print out completion message
 	total_time = time() - start_time
 	if total_time < 100: print("\n%3d Runs Complete in %4.1f seconds." % (nruns, total_time))
-	elif total_time < 6000: print("\n%3d Runs Complete in %4.1f minutes." % (nruns, total_time/60.0))
-	else: print("\n%3d Runs Complete in %5.1f hours.\n" % (nruns, total_time/3600.0))
+	elif total_time < 6000: print("\n%3d Runs Complete in %4.1f minutes." % (nruns, total_time/60))
+	else: print("\n%3d Runs Complete in %5.1f hours.\n" % (nruns, total_time/3600))
 	
 	return results
 	
