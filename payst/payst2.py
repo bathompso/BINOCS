@@ -353,20 +353,13 @@ else:
 		
 		# Spatial RA/Dec Trim
 		if choice == 1:
-			# Pre-determined centers for all popular clusters
-			clustnames = ['Berkeley39', 'Collinder261', 'IC4651', 'Melotte66', 'NGC1039', 'NGC1817', 'NGC188', 'NGC1912', 'NGC1960', 'NGC2099', 'NGC2158', 'NGC2168', 'NGC2420', 'NGC2477', 'NGC2682', 'NGC3680', 'NGC6791', 'NGC6819']
-			clustras = [116.675, 189.488, 261.204, 111.596, 40.521, 78.063, 11.867, 82.167, 84.075, 88.075, 91.854, 92.250, 114.596, 118.042, 132.825, 171.408, 290.221, 295.325]
-			clustdecs = [-4.600, -68.367, -49.933, -47.667, 42.762, 16.690, 85.255, 35.848, 34.140, 32.553, 24.097, 24.350, 21.573, -38.530, 11.800, -43.243, 37.772, 40.187]
-			# Figure out whether cluster has a known location
-			clidx = [x for x in range(len(clustnames)) if catalog.find(clustnames[x]) >= 0]
-			if len(clidx) == 0:
-				print "Unknown Cluster."
-				clra = input('Enter Cluster RA: ')
-				cldec = input('Enter Cluster Dec: ')
-			else:
-				clra = clustras[clidx[0]]
-				cldec = clustdecs[clidx[0]]
-				print "Cluster %s identified at RA = %.1f, DEC = %.1f" % (clustnames[clidx[0]], clra, cldec)
+			import astropy.coordinates as astrocoo
+			dirsplit = catalog.split('/')
+			namesplit = dirsplit[len(dirsplit)-1].split('.')
+			c = astrocoo.ICRS.from_name(namesplit[0])
+			clra = c.ra.deg
+			cldec = c.dec.deg
+			print "Cluster coordinates: %9.5f  %9.5f" % (clra, cldec)
 				
 			# Generate Spatial Plot for Cluster
 			cutset = 0

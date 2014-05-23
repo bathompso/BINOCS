@@ -9,6 +9,7 @@ import numpy as np
 import pyopencl as cl
 from time import time
 from scipy import interpolate
+import os
 
 
 ##### OPTION FILE READIN SUBROUTINE ########################################################
@@ -20,7 +21,8 @@ def readopt(optname):
 	ak = [1.531, 1.324, 1.000, 0.748, 0.482, 1.593, 1.199, 0.858, 0.639, 0.459, 0.282, 0.175, 0.112, 0.0627, 0.0482, 0.0482, 0.0482]
 	
 	# Get path to current option file
-	optdir = '/'.join((optname.split('/'))[0:-1]) + '/'
+	if len(optname.split('/')) == 1: optdir = ''
+	else: optdir = '/'.join((optname.split('/'))[0:-1]) + '/'
 	
 	# Declare empty dictionary
 	options = dict()
@@ -295,7 +297,10 @@ def fidiso(singles, options):
 	for i in range(len(adj)): npadj[i] = adj[i]
 	
 	ndirsplit = options['data'].split('/')
-	fidoutname = "%s/iso_%s.fid.dat" % ('/'.join(ndirsplit[0:len(ndirsplit)-1]), ndirsplit[len(ndirsplit)-2])
+	if len(ndirsplit) == 1: 
+		ndirsplit = os.path.realpath(options['data']).split('/')
+		fidoutname = "iso_%s.fid.dat" % (ndirsplit[-2])
+	else: fidoutname = "%s/iso_%s.fid.dat" % ('/'.join(ndirsplit[0:len(ndirsplit)-1]), ndirsplit[len(ndirsplit)-2])
 	fio = open(fidoutname, "w")
 	for s in range(len(singles)//23):
 		print("%6.3f %7.4f %7.4f %7.4f %7.4f %7.4f %7.4f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f" % (options['age'], npadj[23*s], npadj[23*s+1], npadj[23*s+2], npadj[23*s+3], npadj[23*s+4], npadj[23*s+5], npadj[23*s+6], npadj[23*s+7], npadj[23*s+8], npadj[23*s+9], npadj[23*s+10], npadj[23*s+11], npadj[23*s+12], npadj[23*s+13], npadj[23*s+14], npadj[23*s+15], npadj[23*s+16], npadj[23*s+17], npadj[23*s+18], npadj[23*s+19], npadj[23*s+20], npadj[23*s+21], npadj[23*s+22]), file=fio)
@@ -351,9 +356,14 @@ def makebin(singles, options):
 	# Print created binaries to file
 	ndirsplit = options['data'].split('/')
 	dirsplit = options['iso'].split('/')
-	namesplit = dirsplit[len(dirsplit)-1].split('.')
-	if options['fid'] == '': isooutname = "%s/%s.m%03d.a%05d.bin" % ('/'.join(ndirsplit[0:len(ndirsplit)-1]), '.'.join(namesplit[0:len(namesplit)-1]), options['dm']*100, options['age']*1000)
-	else: isooutname = "%s/iso_%s.m%03d.a%05d.bin" % ('/'.join(ndirsplit[0:len(ndirsplit)-1]), ndirsplit[len(ndirsplit)-2], options['dm']*100, options['age']*1000)
+	namesplit = dirsplit[-1].split('.')
+	if len(ndirsplit) == 1:
+		ndirsplit = os.path.realpath(options['data']).split('/')
+		if options['fid'] == '': isooutname = "%s.m%03d.a%05d.bin" % ('.'.join(namesplit[0:-1]), options['dm']*100, options['age']*1000)
+		else: isooutname = "iso_%s.m%03d.a%05d.bin" % (ndirsplit[-2], options['dm']*100, options['age']*1000)
+	else:	
+		if options['fid'] == '': isooutname = "%s/%s.m%03d.a%05d.bin" % ('/'.join(ndirsplit[0:-1]), '.'.join(namesplit[0:-1]), options['dm']*100, options['age']*1000)
+		else: isooutname = "%s/iso_%s.m%03d.a%05d.bin" % ('/'.join(ndirsplit[0:-1]), ndirsplit[-2], options['dm']*100, options['age']*1000)
 	isoo = open(isooutname, "w")
 	for b in range(len(binary)//23):
 		print("%7.4f %7.4f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f" % (binary[23*b], binary[23*b+1], binary[23*b+6], binary[23*b+7], binary[23*b+8], binary[23*b+9], binary[23*b+10], binary[23*b+11], binary[23*b+12], binary[23*b+13], binary[23*b+14], binary[23*b+15], binary[23*b+16], binary[23*b+17], binary[23*b+18], binary[23*b+19], binary[23*b+20], binary[23*b+21], binary[23*b+22]), file=isoo)
@@ -377,19 +387,66 @@ def makebin(singles, options):
 #					2: Iteration index
 #					3: 0 = fitting to all binary models
 #					   1 = fitting to only single star models
-def sedfit(singles, binary, data, options):
+def sedfit(singles, binary, data, options, chi=False):
 	# Read data out of option dictionary
 	ak = options['ak']
 	nruns = options['nruns']
 
-	# Isochrone comparison kernel
-	kernelstr = """
-	__kernel void binsub( __global float* iso, __global float* data, __global float* chi, __global int* fit, const float chithresh, const int nmodels ) {
+	# Isochrone comparison kernel USING CHI^2 STATISTIC
+	if chi: kernelstr = """
+	__kernel void binsub( __global float* iso, __global float* data, __global float* err, __global float* chi, __global int* fit, const float chithresh, const int nmodels ) {
+		int s = get_global_id(0);
+		fit[s] = -1.0;
+		chi[s] = -1.0;
+		float bestchi = 1000.0;
+		int bestfit = -1;
+		
+		// Loop through models
+		for (int m = 0; m < nmodels; m++){
+			// Initialize variables for this run
+			float tmpchi = 0.0, thischi = 0.0, totfilt = 0.0;
+			int gubv = 0, gsds = 0, gvis = 0, gnir = 0, gmir = 0;
+	
+			// Loop through filters and compare star to the model
+			for (int f = 0; f < 17; f++){
+				thischi = ((data[17*s+f] - iso[23*m+f+6]) * (data[17*s+f] - iso[23*m+f+6])) / (err[17*s+f] * err[17*s+f]);
+				if (thischi < chithresh){
+					if (f < 5){ gubv++; }
+					else if (f < 10){ gsds++; }
+					else if (f < 13){ gnir++; }
+					else{ gmir++; }
+					totfilt++;
+					tmpchi += thischi;
+				} 
+				// If star is more than 100x the uncertainty away on this filter it *will not* fit the star. Abort.
+				else if (thischi > 100 && data[17*s+f] < 80) { break; }
+			}
+			// See which visual filter set has more matches
+			if (gubv > gsds){ gvis = gubv; }
+			else {gvis = gsds; }
+			// See if this comparison has enough filters to be used
+			if (gvis >= %d && gnir >= %d && gmir >= %d){
+				// See if this model is better than the previous best
+				if (tmpchi / totfilt < bestchi){
+					bestchi = tmpchi / totfilt;
+					bestfit = m;
+				}
+			}
+		}
+		// Save best-fit model
+		chi[s] = bestchi;
+		fit[s] = bestfit;
+	}
+	""" % (3,3,2)
+	
+	# Isochrone comparison kernel NOT USING CHI^2
+	else: kernelstr = """
+	__kernel void binsub( __global float* iso, __global float* data, __global float* err, __global float* chi, __global int* fit, const float chithresh, const int nmodels ) {
 		int s = get_global_id(0);
 		fit[s] = -1.0;
 		chi[s] = -1.0;
 		float bestchi = -1.0;
-		int bestfit = 0;
+		int bestfit = -1;
 		
 		// Loop through models
 		for (int m = 0; m < nmodels; m++){
@@ -434,7 +491,7 @@ def sedfit(singles, binary, data, options):
 	queue = cl.CommandQueue(context)
 	program = cl.Program(context, kernelstr).build()
 	binsub = program.binsub
-	binsub.set_scalar_arg_dtypes([None, None, None, None, np.float32, np.int32])
+	binsub.set_scalar_arg_dtypes([None, None, None, None, None, np.float32, np.int32])
 	
 	# Copy necessary arrays to device for processing
 	d_single = cl.Buffer(context, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=singles.astype(np.float32))
@@ -463,17 +520,20 @@ def sedfit(singles, binary, data, options):
 
 	
 		# Randomize magnitudes
-		rundata = np.zeros(len(data)*17)
+		rundata, runerr = np.zeros(len(data)*17), np.zeros(len(data)*17)
 		for e in range(len(data)):
 			rand1 = np.random.rand(17)
 			rand2 = np.random.rand(17)
 			for f in range(17):
 				if data[e][2*f+2] > 80:
 					rundata[17*e+f] = 99.999
+					runerr[17*e+f] = 9.999
 				else:
 					rundata[17*e+f] = data[e][2*f+2] - options['m-M'] - options['ebv'] * 3.08642 * ak[f]
 					rundata[17*e+f] += np.sqrt(-2.0 * np.log(rand1[f])) * np.cos(2.0 * np.pi * rand2[f]) * data[e][2*f+3]
+					runerr[17*e+f] = data[e][2*f+3]
 		d_data = cl.Buffer(context, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=rundata.astype(np.float32))
+		d_err = cl.Buffer(context, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=runerr.astype(np.float32))
 				
 		### COMPARE STARS TO BINARY MODELS
 		# Create output arrays
@@ -481,14 +541,14 @@ def sedfit(singles, binary, data, options):
 		d_chi, d_fit = cl.Buffer(context, cl.mem_flags.WRITE_ONLY, bestchi.nbytes), cl.Buffer(context, cl.mem_flags.WRITE_ONLY, bestfit.nbytes)
 		
 		# Run kernel
-		binsub(queue, bestchi.shape, None, d_binary, d_data, d_chi, d_fit, 10.0, len(binary)//23)
+		binsub(queue, bestchi.shape, None, d_binary, d_data, d_err, d_chi, d_fit, 10.0, len(binary)//23)
 		queue.finish()
 		cl.enqueue_copy(queue, bestchi, d_chi)
 		cl.enqueue_copy(queue, bestfit, d_fit)
 		
 		# Save results
 		for s in range(len(bestchi)):
-			if bestchi[s] > 0:
+			if bestchi[s] > 0 and bestchi[s] < 999:
 				results[s, 0, r, 0] = bestfit[s]
 				results[s, 1, r, 0] = bestchi[s]
 			else:
@@ -501,14 +561,14 @@ def sedfit(singles, binary, data, options):
 		d_chi, d_fit = cl.Buffer(context, cl.mem_flags.WRITE_ONLY, bestchi.nbytes), cl.Buffer(context, cl.mem_flags.WRITE_ONLY, bestfit.nbytes)
 		
 		# Run kernel
-		binsub(queue, bestchi.shape, None, d_single, d_data, d_chi, d_fit, 1.0, len(singles)//23)
+		binsub(queue, bestchi.shape, None, d_single, d_data, d_err, d_chi, d_fit, 1.0, len(singles)//23)
 		queue.finish()
 		cl.enqueue_copy(queue, bestchi, d_chi)
 		cl.enqueue_copy(queue, bestfit, d_fit)
 		
 		# Save results
 		for s in range(len(bestchi)):
-			if bestchi[s] > 0:
+			if bestchi[s] > 0 and bestchi[s] < 999:
 				results[s, 0, r, 1] = bestfit[s]
 				results[s, 1, r, 1] = bestchi[s]
 			else:
