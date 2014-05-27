@@ -353,13 +353,18 @@ else:
 		
 		# Spatial RA/Dec Trim
 		if choice == 1:
-			import astropy.coordinates as astrocoo
 			dirsplit = catalog.split('/')
 			namesplit = dirsplit[len(dirsplit)-1].split('.')
-			c = astrocoo.ICRS.from_name(namesplit[0])
-			clra = c.ra.deg
-			cldec = c.dec.deg
-			print "Cluster coordinates: %9.5f  %9.5f" % (clra, cldec)
+			try:
+				import astropy.coordinates as astrocoo
+				c = astrocoo.ICRS.from_name(namesplit[0])
+				clra = c.ra.deg
+				cldec = c.dec.deg
+				print "Cluster coordinates: %9.5f  %9.5f" % (clra, cldec)
+			except:
+				print "Cannot find cluster '%s'" % namesplit[0]
+				clra = float(input("Enter cluster RA: "))
+				cldec = float(input("Enter cluster DEC: "))
 				
 			# Generate Spatial Plot for Cluster
 			cutset = 0
