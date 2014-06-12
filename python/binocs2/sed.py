@@ -40,7 +40,8 @@ def sedfit(singles, binary, mag, options):
 		# If this is a magnitude, convert it to absolute
 		if i%2 == 0:
 			data[:,i//2] = mag[:,i] 
-			data[data[:,i//2] < 80, i//2] -= options['m-M'] - options['ebv'] * 3.08642 * options['ak'][i//2]
+			data[data[:,i//2] < 80, i//2] -= options['m-M'] + options['ebv'] * 3.08642 * options['ak'][i//2]
+		# Save magnitude errors
 		else: err[:,(i-1)//2] = mag[:,i]
 	
 	# Flatten data and err for use in OpenCL kernel
@@ -62,18 +63,18 @@ def sedfit(singles, binary, mag, options):
 	start_time = time()
 	for r in range(options['nruns']):
 		# Print progress
-		if r < 1: print("\nRun %3d of %3d " % (r, options['nruns']), end='')
+		if r < 1: print("    Run %3d of %3d " % (r, options['nruns']), end='')
 		elif (r % p) == 0 and r > 0 and r < options['nruns'] - 4:
 			time_perloop = (time() - start_time) / r
 			time_left = ((options['nruns'] - r) * time_perloop)
-			if time_left < 99: print(" ETA: %3d sec.\nRun %3d of %3d " % (round(time_left), r, options['nruns']), end='')
-			elif time_left < 5900: print(" ETA: %3.1f min.\nRun %3d of %3d " % (time_left/60, r, options['nruns']), end='')
-			else: print(" ETA: %3.1f hrs.\nRun %3d of %3d " % ( time_left/360, r, options['nruns']), end='')
+			if time_left < 99: print(" ETA: %3d sec.\n    Run %3d of %3d " % (round(time_left), r, options['nruns']), end='')
+			elif time_left < 5900: print(" ETA: %3.1f min.\n    Run %3d of %3d " % (time_left/60, r, options['nruns']), end='')
+			else: print(" ETA: %3.1f hrs.\n    Run %3d of %3d " % ( time_left/360, r, options['nruns']), end='')
 		sys.stdout.flush()
 			
 		# Randomize magnitudes
 		rand1, rand2 = np.random.rand(len(data)), np.random.rand(len(data))
-		rundata = data + np.sqrt(-2 * np.log(rand1)) * np.cos(2 * np.pi * rand2) * err
+		rundata = data + np.sqrt(-2.0 * np.log(rand1)) * np.cos(2.0 * np.pi * rand2) * err / 2
 		
 		# Copy star magnitudes to device
 		d_data = cl.Buffer(context, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=rundata.astype(np.float32))
@@ -116,9 +117,9 @@ def sedfit(singles, binary, mag, options):
 	
 	# Print out completion message
 	total_time = time() - start_time
-	if total_time < 100: print("\n%3d Runs Complete in %4.1f seconds." % (options['nruns'], total_time))
-	elif total_time < 6000: print("\n%3d Runs Complete in %4.1f minutes." % (options['nruns'], total_time/60))
-	else: print("\n%3d Runs Complete in %5.1f hours.\n" % (options['nruns'], total_time/3600))
+	if total_time < 100: print("\n    %3d Runs Complete in %4.1f seconds." % (options['nruns'], total_time))
+	elif total_time < 6000: print("\n    %3d Runs Complete in %4.1f minutes." % (options['nruns'], total_time/60))
+	else: print("\n    %3d Runs Complete in %5.1f hours.\n" % (options['nruns'], total_time/3600))
 	
 	return results
 	
@@ -164,7 +165,7 @@ def summarize(results, binary, singles):
 			else: usec = 0.0
 	
 			# Determine binarity flag
-			if msec / mpri > 0.4: bflag = 2
+			if msec / mpri > 0.3: bflag = 2
 			else: bflag = 1
 	
 		summary[s,:] = [mpri, upri, msec, usec, medchi, smass, umass, smchi, bflag]

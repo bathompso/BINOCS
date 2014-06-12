@@ -15,7 +15,7 @@ def makebin(iso, options):
 	"""
 	
 	# Create initial matrix to hold all binary models
-	bmod = np.zeros([iso.shape[0]**2+iso.shape[0], 23])
+	bmod = np.zeros([iso.shape[0]**2+iso.shape[0]+1, 23])
 	
 	# Loop through primary stars
 	print("\nCreating synthetic binary models... ", end='')
@@ -40,9 +40,9 @@ def makebin(iso, options):
 			if magdiff > 3: continue
 			
 			# Add this binary to the dataset
-			bmod[iso.shape[0]*p+s+p,0] = iso[p,0]
-			bmod[iso.shape[0]*p+s+p,1] = iso[s,0]
-			bmod[iso.shape[0]*p+s+p,6:] = newmags
+			bmod[iso.shape[0]*p+s+p+1,0] = iso[p,0]
+			bmod[iso.shape[0]*p+s+p+1,1] = iso[s,0]
+			bmod[iso.shape[0]*p+s+p+1,6:] = newmags
 			
 	# Copy out only models that have magnitudes
 	bin = bmod[bmod[:,0] > 0,:]
@@ -117,6 +117,9 @@ def makesynth(mag, binary, options):
 	
 	# Give errors to stars outside range
 	for f in range(17): synth[synth[:,2*f+1] == 0,2*f+1] = avg_err[-1,f]
+	
+	# Multiply uncertainties by 2
+	for f in range(17): synth[:,2*f+1] *= 2
 	
 	# Randomize magnitudes
 	for f in range(17):
