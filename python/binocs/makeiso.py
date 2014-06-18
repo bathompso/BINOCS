@@ -1,4 +1,5 @@
 # MAKEISO subroutines
+from __future__ import print_function, division
 import sys, subprocess
 import numpy as np
 
@@ -27,7 +28,7 @@ def padova(path, outpath):
 		# Determine output file name
 		if u < 0: outname = "%s/iso_m%03d.pv.syn.dat" % (outpath, -1.0*u*100.0)
 		else: outname = "%s/iso_p%03d.pv.syn.dat" % (outpath, u*100.0)
-		print "Printing isochrone for [Fe/H] = %5.2f to '%s'" % (u, outname)
+		print("Printing isochrone for [Fe/H] = %5.2f to '%s'" % (u, outname))
 		# Loop through all webfiles for this [Fe/H] and read in data
 		data = np.zeros([thisnlines, 24])
 		for f in thisuni:
@@ -36,15 +37,15 @@ def padova(path, outpath):
 			df.close()
 			# Determine what file type this is
 			if lines[3].find('SDSS') >= 0:
-				print "    Reading SDSS+JHK file '%s'" % (webfiles[f])
+				print("    Reading SDSS+JHK file '%s'" % (webfiles[f]))
 				adj = 1
 				ftype = 2
 			elif lines[11].find('V') >= 0:
-				print "    Reading UBVRI file '%s'" % (webfiles[f])
+				print("    Reading UBVRI file '%s'" % (webfiles[f]))
 				adj = 0
 				ftype = 1
 			else:
-				print "    Reading IRAC file '%s'" % (webfiles[f])
+				print("    Reading IRAC file '%s'" % (webfiles[f]))
 				adj = 0
 				ftype = 3
 			for i in range(len(lines)):
@@ -67,7 +68,7 @@ def padova(path, outpath):
 			badmag = [x for x in data[s,:] if x == 0 or x < -9.9]
 			if len(badmag) > 0: continue
 			# Print out star
-			print >>of, "%6.3f %7.4f %7.4f %7.4f %7.4f %7.4f %7.4f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f" % (data[s,0], data[s,1], data[s,2], data[s,3], data[s,4], data[s,5], data[s,6], data[s,7], data[s,8], data[s,9], data[s,10], data[s,11], data[s,12], data[s,13], data[s,14], data[s,15], data[s,16], data[s,17], data[s,18], data[s,19], data[s,20], data[s,21], data[s,22], data[s,23])
+			print("%6.3f %7.4f %7.4f %7.4f %7.4f %7.4f %7.4f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f" % (data[s,0], data[s,1], data[s,2], data[s,3], data[s,4], data[s,5], data[s,6], data[s,7], data[s,8], data[s,9], data[s,10], data[s,11], data[s,12], data[s,13], data[s,14], data[s,15], data[s,16], data[s,17], data[s,18], data[s,19], data[s,20], data[s,21], data[s,22], data[s,23]), file=of)
 		of.close()
 
 
@@ -95,7 +96,7 @@ def parsec(path, outpath):
 		# Determine output file name
 		if u < 0: outname = "%s/iso_m%03d.pc.syn.dat" % (outpath, -1.0*u*100.0)
 		else: outname = "%s/iso_p%03d.pc.syn.dat" % (outpath, u*100.0)
-		print "Printing isochrone for [Fe/H] = %5.2f to '%s'" % (u, outname)
+		print("Printing isochrone for [Fe/H] = %5.2f to '%s'" % (u, outname))
 		# Loop through all webfiles for this [Fe/H] and read in data
 		data = np.zeros([thisnlines, 24])
 		for f in thisuni:
@@ -104,13 +105,13 @@ def parsec(path, outpath):
 			df.close()
 			# Determine what file type this is
 			if lines[12].find('Ks') >= 0:
-				print "    Reading SDSS+JHK file '%s'" % (webfiles[f])
+				print("    Reading SDSS+JHK file '%s'" % (webfiles[f]))
 				ftype = 2
 			elif lines[12].find('V') >= 0:
-				print "    Reading UBVRI file '%s'" % (webfiles[f])
+				print("    Reading UBVRI file '%s'" % (webfiles[f]))
 				ftype = 1
 			else:
-				print "    Reading IRAC file '%s'" % (webfiles[f])
+				print("    Reading IRAC file '%s'" % (webfiles[f]))
 				ftype = 3
 			for i in range(len(lines)):
 				if lines[i].find('#') >= 0: continue
@@ -132,7 +133,7 @@ def parsec(path, outpath):
 			badmag = [x for x in data[s,:] if x == 0 or x < -9.9]
 			if len(badmag) > 0: continue
 			# Print out star
-			print >>of, "%6.3f %7.4f %7.4f %7.4f %7.4f %7.4f %7.4f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f" % (data[s,0], data[s,1], data[s,2], data[s,3], data[s,4], data[s,5], data[s,6], data[s,7], data[s,8], data[s,9], data[s,10], data[s,11], data[s,12], data[s,13], data[s,14], data[s,15], data[s,16], data[s,17], data[s,18], data[s,19], data[s,20], data[s,21], data[s,22], data[s,23])
+			print("%6.3f %7.4f %7.4f %7.4f %7.4f %7.4f %7.4f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f" % (data[s,0], data[s,1], data[s,2], data[s,3], data[s,4], data[s,5], data[s,6], data[s,7], data[s,8], data[s,9], data[s,10], data[s,11], data[s,12], data[s,13], data[s,14], data[s,15], data[s,16], data[s,17], data[s,18], data[s,19], data[s,20], data[s,21], data[s,22], data[s,23]), file=of)
 		of.close()
 
 
@@ -160,7 +161,7 @@ def dartmouth(path, outpath):
 		# Determine output file name
 		if u < 0: outname = "%s/iso_m%03d.dm.syn.dat" % (outpath, -1.0*u*100.0)
 		else: outname = "%s/iso_p%03d.dm.syn.dat" % (outpath, u*100.0)
-		print "Printing isochrone for [Fe/H] = %5.2f to '%s'" % (u, outname)
+		print("Printing isochrone for [Fe/H] = %5.2f to '%s'" % (u, outname))
 		# Loop through all webfiles for this [Fe/H] and read in data
 		data = np.zeros([thisnlines, 24])
 		for f in thisuni:
@@ -169,13 +170,13 @@ def dartmouth(path, outpath):
 			df.close()
 			# Determine what file type this is
 			if lines[5].find('SDSS') >= 0:
-				print "    Reading SDSS file '%s'" % (webfiles[f])
+				print("    Reading SDSS file '%s'" % (webfiles[f]))
 				ftype = 1
 			elif lines[5].find('Bessel') >= 0:
-				print "    Reading UBVRI+JHK file '%s'" % (webfiles[f])
+				print("    Reading UBVRI+JHK file '%s'" % (webfiles[f]))
 				ftype = 2
 			else:
-				print "    Reading IRAC file '%s'" % (webfiles[f])
+				print("    Reading IRAC file '%s'" % (webfiles[f]))
 				ftype = 3
 			for i in range(len(lines)):
 				if lines[i].find('AGE') == 1: thisage = np.log10(float((lines[i])[5:11])*1E9)
@@ -202,7 +203,7 @@ def dartmouth(path, outpath):
 			badmag = [x for x in data[s,:] if x == 0 or x < -9.9]
 			if len(badmag) > 0: continue
 			# Print out star
-			print >>of, "%6.3f %7.4f %7.4f %7.4f %7.4f %7.4f %7.4f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f" % (data[s,0], data[s,1], data[s,2], data[s,3], data[s,4], data[s,5], data[s,6], data[s,7], data[s,8], data[s,9], data[s,10], data[s,11], data[s,12], data[s,13], data[s,14], data[s,15], data[s,16], data[s,17], data[s,18], data[s,19], data[s,20], data[s,21], data[s,22], data[s,23])
+			print("%6.3f %7.4f %7.4f %7.4f %7.4f %7.4f %7.4f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f" % (data[s,0], data[s,1], data[s,2], data[s,3], data[s,4], data[s,5], data[s,6], data[s,7], data[s,8], data[s,9], data[s,10], data[s,11], data[s,12], data[s,13], data[s,14], data[s,15], data[s,16], data[s,17], data[s,18], data[s,19], data[s,20], data[s,21], data[s,22], data[s,23]), file=of)
 		of.close()
 		
 
@@ -211,7 +212,7 @@ def dartmouth(path, outpath):
 def makeiso(isopath, outpath):
 	tmp = [x for x in subprocess.check_output("ls "+isopath+"*", shell=True).splitlines() if x.find('.dat') >= 0]
 	if len(tmp) == 0:
-		print "\n!!! Dartmouth Isochrones Detected.\n"
+		print("\n!!! Dartmouth Isochrones Detected.\n")
 		dartmouth(isopath, outpath)
 	else:
 		testfile = tmp[0]
@@ -219,9 +220,9 @@ def makeiso(isopath, outpath):
 		lines = df.read().splitlines()
 		df.close()
 		if lines[1].find('Marigo') >= 0:
-			print "\n!!! Padova Isochrones Detected.\n"
+			print("\n!!! Padova Isochrones Detected.\n")
 			padova(isopath, outpath)
 		elif lines[1].find('PARSEC') >= 0:
-			print "\n!!! PARSEC Isochrones Detected.\n"
+			print("\n!!! PARSEC Isochrones Detected.\n")
 			parsec(isopath, outpath)
 		

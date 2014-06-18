@@ -37,14 +37,15 @@ def readopt(optname):
 		if tmp[0] == "nruns": options['nruns'] = int(tmp[1])
 		if tmp[0] == "dr": options['dr'] = float(tmp[1])
 		
+	# Find [Fe/H] value from the isochrone name
+	ppos, mpos = options['iso'].find('_p'), options['iso'].find('_m')
+	if ppos > 0: fehstr = "+%.2f" % (float(options['iso'][ppos+2:ppos+5])/100)
+	if mpos > 0: fehstr = "-%.2f" % (float(options['iso'][mpos+2:mpos+5])/100)
+		
 	# Print out imported parameters
-	print("\nParameters:")
-	print("    data:", options['data'])
-	print("    iso:", options['iso'])
-	print("    dm =", options['dm'])
-	print("    age =", options['age'])
-	print("    m-M =", options['m-M'])
-	print("    E(B-V) =", options['ebv'])
+	print("\nReading option file...")
+	print("    Data file: %s" % options['data'])
+	print("    Isochrone: %.2f Gyr, %d pc, [Fe/H] = %5s, E(B-V) = %.2f" % (10.0**(options['age']-9), 10.0**((options['m-M']+5)/5), fehstr, options['ebv']))
 	
 	return options
 

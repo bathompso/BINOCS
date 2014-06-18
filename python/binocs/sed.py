@@ -3,7 +3,7 @@ from __future__ import print_function, division
 import numpy as np
 import pyopencl as cl
 from time import time
-from kernel import sedkernel
+from .kernel import sedkernel
 import sys
 
 def sedfit(singles, binary, mag, options):
