@@ -1,51 +1,19 @@
-# Import modules
+# PAYST subroutines
+from __future__ import print_function, division
 import pyopencl as cl
-import matplotlib.pyplot as plt
-import sys, math, subprocess
 import numpy as np
 from time import time
+import matplotlib.pyplot as plt
+import sys
 
-
-# Coordinate matching kernel
-cookernel = """__kernel void coomatch(
-	__global float* ra,
-	__global float* dec,
-	__global float* thesera,
-	__global float* thesedec,
-	__global int* indexes,
-	__global int* matched,
-	const float radius,
-	const int length)
-{
-	float dra, ddec, diff;
-	int match = -1;
-	float mindiff = 99.0;
-	int j = get_global_id(0);
-	for (int i = 0; i < length; i++){
-		if (i == j){ continue; }
-		dra = (ra[i] - thesera[j]) * cos(thesedec[j] * 3.14159265 / 180.0);
-		ddec = dec[i] - thesedec[j];
-		diff = sqrt( dra*dra + ddec*ddec );
-		if (diff < radius && diff < mindiff){
-			mindiff = diff;
-			match = i;
-		}
-	}
-	indexes[j] = match;
-}
-"""
-
-
-# Define function to automatically extend every array we have to deal with
-def extendarr( id2mass, mag, mempct, memchar, match ):
+def extendarr(id2mass, mag, mempct, memchar, match):
 	id2mass.append('00000000+0000000')
 	mempct.append(-1)
 	memchar.append('U')
 	match.append(-1)
 	
 
-# Define function to check for magnitude replacement
-def savemag( dataarr, mag, mempct, memchar, index, filters, maxerr ):
+def savemag(dataarr, mag, mempct, memchar, index, filters, maxerr):
 	for f in range(len(filters)):
 		# Check to see if error on magnitude is worth saving
 		if float(dataarr[2*f+1]) > maxerr and filters[0] < 38: continue
@@ -61,50 +29,49 @@ def savemag( dataarr, mag, mempct, memchar, index, filters, maxerr ):
 	if filters[0] == 38:
 		mempct[index] = float(dataarr[2])
 		memchar[index] = dataarr[3]
+		
 
+def paystmatch(optname, minradius, maxerr=0.1):
+	# Define variables
+	maxlines, nfiles, ctr, oldctr = 0, 0, 0, 0
 	
-# Define variables
-maxlines = 0
-nfiles = 0
-ctr = 0
-oldctr = 0
-maxerr = 0.1
-masterfilters = ['U', 'B', 'V', 'R', 'I', 'SU', 'SG', 'SR', 'SI', 'SZ', 'J', 'H', 'K', 'B1', 'B2', 'B3', 'B4', 'B5', 'B6']
-ak = [1.531, 1.324, 1.000, 0.748, 0.482, 1.593, 1.199, 0.858, 0.639, 0.459, 0.282, 0.175, 0.112, 0.0627, 0.0482, 0.0482, 0.0482]
-
-print "\n\n"
-print "==========================================="
-print "|                  PAYST                  |"
-print "|                  v2.0                   |"
-print "|    GPU-Enabled (Requires OpenCL 1.2+)   |"
-print "|                                         |"
-print "|             by Ben Thompson             |"
-print "==========================================="
-
-
-### Create OpenCL queue
-context = cl.create_some_context()							# Asks user to specify which OpenCL device should be used.
-queue = cl.CommandQueue(context)							# Creates a command queue for specified device
-program = cl.Program(context, cookernel).build()			# Compiles kernel program on specified device
-coomatch = program.coomatch
-coomatch.set_scalar_arg_dtypes([None, None, None, None, None, None, np.float32, np.uint32])
-
-
-# Read options from command line
-comargs = sys.argv
-
-
-### Catalog matching mode
-if len(comargs) > 2:
-	optname = comargs[1]
-	minradius = float(comargs[2]) / 3600.0
-	print "\n!!!  Parameters:   Option File =", optname, "    radius =", minradius*3600.0, "arcsec"
+	# Initialize OpenCL Routine
+	cookernel = """__kernel void coomatch(__global float* ra, __global float* dec, __global float* thesera, __global float* thesedec, __global int* indexes, __global int* matched, const float radius, const int length) 
+	{
+		float dra, ddec, diff;
+		int match = -1;
+		float mindiff = 99.0;
+		int j = get_global_id(0);
+		for (int i = 0; i < length; i++){
+			if (i == j){ continue; }
+			dra = (ra[i] - thesera[j]) * cos(thesedec[j] * 3.14159265 / 180.0);
+			ddec = dec[i] - thesedec[j];
+			diff = sqrt( dra*dra + ddec*ddec );
+			if (diff < radius && diff < mindiff){
+				mindiff = diff;
+				match = i;
+			}
+		}
+		indexes[j] = match;
+	}
+	"""
+	context = cl.create_some_context()
+	queue = cl.CommandQueue(context)
+	program = cl.Program(context, cookernel).build()
+	coomatch = program.coomatch
+	coomatch.set_scalar_arg_dtypes([None, None, None, None, None, None, np.float32, np.uint32])
+	
+	# Print out parameters being used
+	print("==== PAYST ====")
+	print("    Option File: %s" % optname)
+	print("    Matching Radius: %.1f arcsec" % (minradius*3600.0))
+	
+	# Define path prefix for data files
 	optsplit = optname.split('/')
 	if len(optsplit) > 1: prefix = "/".join(optsplit[0:len(optsplit)-1]) + "/"
 	else: prefix = ""
-	if len(comargs) > 3: maxerr = float(comargs[3])
 
-	# Read parameters from option file
+	# Determine number of star in each file
 	optfile = open(optname, 'r')
 	optlines = optfile.read().splitlines()
 	optfile.close()
@@ -117,46 +84,37 @@ if len(comargs) > 2:
 		thisfile.close()
 		maxlines += len(thislines)
 		nfiles += 1
-	print "!!!     Matching", maxlines, "stars in", nfiles, "files."
-	print ""
+	print("    Matching %d stars in %d files" % (maxlines, nfiles))
 
 	# Generate all arrays & generic entries
 	id2mass = []
-	ra = np.zeros(maxlines).astype(np.float32)
-	dec = np.zeros(maxlines).astype(np.float32)
+	ra, dec = np.zeros(maxlines).astype(np.float32), np.zeros(maxlines).astype(np.float32)
 	mag = np.zeros([maxlines, 44])
 	for l in range(maxlines):
 		for e in range(44):
 			if e % 2 == 0: mag[l,e] = 99.999
 			else: mag[l,e] = 9.999
-	mempct = []
-	memchar = []
-	match = []
-
-
+	mempct, memchar, match = [], [], []
+	
 	# Loop through option file and match everything
 	start = time()
 	for o in range(len(optlines)):
-		starttime = time()
-
-		if '#' in optlines[o]:
-			continue
+		if '#' in optlines[o] or len(optlines[o].split()) == 0: continue
 		tmp = optlines[o].split()
-		if len(tmp) == 0: continue
 		f = open(prefix+tmp[0], 'r')
 		datalines = f.read().splitlines()
 		f.close()
 	
 		thisjnk = int(tmp[1])
 		thisfiltchars = tmp[2:len(tmp)]
-		print "Opening", tmp[0], "..."
+		print("\nOpening '%s': " % tmp[0], end='')
 	
 		if tmp[0].find('2MASS') >= 0: is2mass = 1
 		else: is2mass = 0
 	
 		RVPM = 0
 		if len(thisfiltchars) > 0:
-			print "     ", len(datalines), "stars in filters:", ' '.join(thisfiltchars)
+			print("%d stars in %s" % (len(datalines), ' '.join(thisfiltchars)))
 			filters = []
 			for f in thisfiltchars:    # Loop through and find filter indices
 				fin = [j for j in range(len(masterfilters)) if f == masterfilters[j]]
@@ -165,14 +123,14 @@ if len(comargs) > 2:
 				filters.append(2*fin[0])
 		elif 'RV' in tmp[0]:
 			RVPM = 1
-			print "     ", len(datalines), "stars with RV data."
+			print("%d stars with RV data." % len(datalines))
 			filters = [38]
 		elif 'PM' in tmp[0]:
 			RVPM = 2
-			print "     ", len(datalines), "stars with PM data."
+			print("%d stars with PM data." % len(datalines))
 			filters = [40, 42]
 		else:
-			print "Unknown file, please rename."
+			print("Unknown file type, please rename.")
 			exit()
 		
 		#### SPECIAL LOGIC FOR FIRST RUN
@@ -184,21 +142,20 @@ if len(comargs) > 2:
 				# Add member info to array if PM data file, if not, just need mags
 				if RVPM == 2:
 					dataarr = tmp[thisjnk+2:2*len(filters)+thisjnk+4]
-					if len([x for x in range(len(dataarr)/2-1) if float(dataarr[2*x+1]) < maxerr]) == 0: continue
+					if len([x for x in range(len(dataarr)//2-1) if float(dataarr[2*x+1]) < maxerr]) == 0: continue
 				else:
 					dataarr = tmp[thisjnk+2:2*len(filters)+thisjnk+2]
-					if len([x for x in range(len(dataarr)/2) if float(dataarr[2*x+1]) < maxerr]) == 0: continue
+					if len([x for x in range(len(dataarr)//2) if float(dataarr[2*x+1]) < maxerr]) == 0: continue
 				extendarr(id2mass, mag, mempct, memchar, match)
 				ra[len(id2mass)-1] = thisra
 				dec[len(id2mass)-1] = thisdec
 				if is2mass == 1: id2mass[len(id2mass)-1] = tmp[0]
 				savemag(dataarr, mag, mempct, memchar, len(id2mass)-1, filters, maxerr)
 				match[len(id2mass)-1] = o
-			print "      Added", len(id2mass), "stars."
-			print "      Elapsed: %d seconds." % (time() - start)
-			print ""
+			print("    Added %d stars." % len(id2mass))
+			print("    Elapsed: %.3f seconds." % (time() - start))
 			continue
-		
+			
 		#### LOGIC FOR NON-FIRST RUNS		
 		# Extract coordinates for this file
 		thisra = np.empty(len(datalines)).astype(np.float32)
@@ -223,8 +180,8 @@ if len(comargs) > 2:
 		cl.enqueue_copy(queue, indexes, d_index)
 		matched = ((indexes >= 0) & (indexes <= len(ra)))
 	
-		print "      Matched", len(indexes[matched]), "stars."
-	
+		print("    Matched %d stars. (%d%s)" % (len(indexes[matched]), len(indexes[matched])/len(datalines)*100, '%'))
+		
 		# Save magnitudes
 		for i in range(len(indexes)):
 			tmp = datalines[i].split()
@@ -234,7 +191,7 @@ if len(comargs) > 2:
 				dataarr = tmp[thisjnk+2:2*len(filters)+thisjnk+4]
 			else:
 				dataarr = tmp[thisjnk+2:2*len(filters)+thisjnk+2]
-				if len([x for x in range(len(dataarr)/2) if float(dataarr[2*x+1]) < maxerr]) == 0: continue
+				if len([x for x in range(len(dataarr)//2) if float(dataarr[2*x+1]) < maxerr]) == 0: continue
 	
 			# If we matched another star
 			if (indexes[i] >= 0): savemag(dataarr, mag, mempct, memchar, indexes[i], filters, maxerr)
@@ -244,14 +201,11 @@ if len(comargs) > 2:
 				dec[len(id2mass)-1] = thisdec[i]
 				savemag(dataarr, mag, mempct, memchar, len(id2mass)-1, filters, maxerr)
 	
-		print "      Elapsed: %d seconds." % (time() - start)
-		print ""
-	
-	# End loop through option file
-
+		print("    Elapsed: %d seconds." % (time() - start))
+		
 	# Print out results
-	print "!!! WRITING RESULTS TO OUTPUT FILE"
 	namesplit = optsplit[len(optsplit)-1].split('.')
+	print("\n\nWriting results to '%s'..." % (namesplit[0]+".Merged.txt"))
 	out = open(prefix+namesplit[0]+".Merged.txt", 'w')
 	for i in range(len(id2mass)):
 		outstring = ""
@@ -261,11 +215,11 @@ if len(comargs) > 2:
 			rah = int(rahrs)
 			ram = int((rahrs - rah) * 60.0)
 			ras = int((((rahrs - rah) * 60.0) - ram) * 6000.0)
-			decd = int(dec[i])
-			decm = int((dec[i] - decd) * 60.0)
-			decs = int((((dec[i] - decd) * 60.0) - decm) * 600.0)
-			if dec[i] > 0: id2mass[i] = 'BT%02d%02d%04d+%02d%02d%03d' % (rah, ram, ras, decd, decm, decs)
-			else: id2mass[i] = 'BT%02d%02d%04d-%02d%02d%03d' % (rah, ram, ras, abs(decd), decm, decs)
+			decd = np.abs(int(dec[i]))
+			decm = int((np.abs(dec[i]) - decd) * 60.0)
+			decs = int((((np.abs(dec[i]) - decd) * 60.0) - decm) * 600.0)
+			if dec[i] > 0: id2mass[i] = 'ID%02d%02d%04d+%02d%02d%03d' % (rah, ram, ras, decd, decm, decs)
+			else: id2mass[i] = 'ID%02d%02d%04d-%02d%02d%03d' % (rah, ram, ras, abs(decd), decm, decs)
 		else: id2mass[i] = '2M%s' % (id2mass[i])
 		outstring += "%16s " % (id2mass[i])					# Add 2MASS ID to output
 		outstring += "%9.5f %9.5f " % (ra[i], dec[i])		# Add coordinates to output
@@ -275,27 +229,27 @@ if len(comargs) > 2:
 			outstring += "%8.3f " % (mag[i, v+38])
 		outstring += "%5d " % (mempct[i])					# Add member information to output
 		outstring += "%5s " % (memchar[i])
-		print >>out, outstring
-		
+		print(outstring, file=out)
 	out.close()	
-		
-		
-### Catalog trimming mode
-else:
-	catalog = comargs[1]
-	print "\n!!!  Parameters:   Catalog =",catalog
+	
+	
+def paysttrim(catalog):
+	# Define variables
+	masterfilters = ['U', 'B', 'V', 'R', 'I', 'SU', 'SG', 'SR', 'SI', 'SZ', 'J', 'H', 'K', 'B1', 'B2', 'B3', 'B4', 'B5', 'B6']
+	ak = [1.531, 1.324, 1.000, 0.748, 0.482, 1.593, 1.199, 0.858, 0.639, 0.459, 0.282, 0.175, 0.112, 0.0627, 0.0482, 0.0482, 0.0482]
+
+	print("==== PAYST ====")
+	print("    Input Catalog: %s" % catalog)
 	catf = open(catalog, "r")
 	lines = catf.read().splitlines()
 	catf.close()
-	print "!!!     Catalog contains", len(lines), "stars."
+	print("    Original Catalog Contains %d stars" % len(lines))
 	
 	# Create arrays
 	id2mass = []
 	ra, dec = np.zeros(len(lines)), np.zeros(len(lines))
 	mags = np.zeros([len(lines), 44])
-	mempct = np.zeros(len(lines))
-	memchar = []
-	member = np.zeros(len(lines))
+	mempct, memchar, member = np.zeros(len(lines)), [], np.zeros(len(lines))
 	
 	# Loop through file and read in data
 	for l in range(len(lines)):
@@ -321,32 +275,32 @@ else:
 			pcol[1] = ([x for x in range(len(masterfilters)) if (pcolstr.split('-'))[1] == masterfilters[x]])[0]
 			
 		# Plot CMD
-		cmdmag = [mags[x, 2*pmag] for x in range(len(lines)) if mags[x, 2*pmag] < 80 and mags[x, 2*pcol[0]] < 80 and mags[x, 2*pcol[1]] < 80 and member[x] == 1]
-		cmdcol = [mags[x, 2*pcol[0]] - mags[x, 2*pcol[1]] for x in range(len(lines)) if mags[x, 2*pmag] < 80 and mags[x, 2*pcol[0]] < 80 and mags[x, 2*pcol[1]] < 80  and member[x] == 1]
-		plt.clf()
-		plt.plot(cmdcol, cmdmag, "ko", markersize=1)
-		if isoplot == 1:
-			isomag = [isodata[x,pmag+1] + isod + ak[pmag]/0.324*isoebv for x in range(len(isolines)) if isodata[x,0] == isoage]
-			isocol = [isodata[x,pcol[0]+1] - isodata[x,pcol[1]+1] + (ak[pcol[0]] - ak[pcol[1]])/0.324*isoebv for x in range(len(isolines)) if isodata[x,0] == isoage]
-			plt.plot(isocol, isomag, "b-")
-		plt.axis([min(cmdcol)-0.1, max(cmdcol)+0.1, max(cmdmag)+0.5, min(cmdmag)-0.5])
-		plt.ylabel(pmagstr)
-		plt.xlabel(pcolstr)
-		plt.show(block=False)
-		plt.draw()
+		try:
+			cmdmag = [mags[x, 2*pmag] for x in range(len(lines)) if mags[x, 2*pmag] < 80 and mags[x, 2*pcol[0]] < 80 and mags[x, 2*pcol[1]] < 80 and member[x] == 1]
+			cmdcol = [mags[x, 2*pcol[0]] - mags[x, 2*pcol[1]] for x in range(len(lines)) if mags[x, 2*pmag] < 80 and mags[x, 2*pcol[0]] < 80 and mags[x, 2*pcol[1]] < 80  and member[x] == 1]
+			plt.clf()
+			plt.plot(cmdcol, cmdmag, "ko", markersize=1)
+			if isoplot == 1:
+				isomag = [isodata[x,pmag+1] + isod + ak[pmag]/0.324*isoebv for x in range(len(isolines)) if isodata[x,0] == isoage]
+				isocol = [isodata[x,pcol[0]+1] - isodata[x,pcol[1]+1] + (ak[pcol[0]] - ak[pcol[1]])/0.324*isoebv for x in range(len(isolines)) if isodata[x,0] == isoage]
+				plt.plot(isocol, isomag, "b-")
+			plt.axis([min(cmdcol)-0.1, max(cmdcol)+0.1, max(cmdmag)+0.5, min(cmdmag)-0.5])
+			plt.ylabel(pmagstr)
+			plt.xlabel(pcolstr)
+			plt.show(block=False)
+			plt.draw()
+		except:
+			print("Plotting Error. Re-choose CMD magnitudes, or revert trimming.")
 			
 		# Print Menu
-		print "\n\n 1) RA / Dec Cut"
-		print " 2) Membership Cut"
-		print " 3) A_K Cut"
-		print " 4) Full Photometry Cut"
-		print ""
-		print " 8) Change CMD Options"
-		print " 9) Reset Trimming"
-		print " 0) Exit and Print Out Results"
-		print "-1) Abort"
+		print("\n")
+		print("1) RA / Dec Cut          2) Membership Cut")
+		print("3) A_K Cut               4) Full Photometry Cut")
+		print("")
+		print("8) Change CMD Options    9) Reset Trimming")
+		print("0) Complete             -1) Abort")
 		choice = input(': ')
-		print "\n"
+		print("\n")
 		
 		# Emergency Break
 		if choice == -1: sys.exit(0)
@@ -360,9 +314,9 @@ else:
 				c = astrocoo.ICRS.from_name(namesplit[0])
 				clra = c.ra.deg
 				cldec = c.dec.deg
-				print "Cluster coordinates: %9.5f  %9.5f" % (clra, cldec)
+				print("Cluster coordinates: %9.5f  %9.5f" % (clra, cldec))
 			except:
-				print "Cannot find cluster '%s'" % namesplit[0]
+				print("Cannot find cluster '%s'" % namesplit[0])
 				clra = float(input("Enter cluster RA: "))
 				cldec = float(input("Enter cluster DEC: "))
 				
@@ -408,20 +362,20 @@ else:
 				if dist > clrad:
 					trimmed += 1
 					member[s] = 0
-			print "REMOVED", trimmed, "stars."
+			print("Removed %d stars.  %d remaining." % (trimmed, len(member[member>0])))
 			
 		# Membership Selection
 		if choice == 2:
-			print "Qualitative Selection:"
-			print "  1) Select only Members"
-			print "  2) Select only Single Members"
-			print "  3) Deselect only Non-Members"
-			print "  4) No Selection"
+			print("Qualitative Selection:")
+			print("  1) Select only Members")
+			print("  2) Select only Single Members")
+			print("  3) Deselect only Non-Members")
+			print("  4) No Selection")
 			charchoice = input(': ')
-			print "\nQuantitative Selection:"
-			print "  1) Select only Stars > %"
-			print "  2) Deselect only Stars < %"
-			print "  3) No Selection"
+			print("\nQuantitative Selection:")
+			print("  1) Select only Stars > %")
+			print("  2) Deselect only Stars < %")
+			print("  3) No Selection")
 			pctchoice = input(': ')
 			if pctchoice < 3: pctcut = input('Enter % cutoff: ')
 			
@@ -454,7 +408,7 @@ else:
 					member[s] = 0
 					trimmed += 1
 					
-			print "REMOVED",trimmed,"stars."
+			print("Removed %d stars.  %d remaining." % (trimmed, len(member[member>0])))
 			
 		# A_K Cut
 		#if choice == 3:
@@ -479,21 +433,21 @@ else:
 				nmir[s] = len(gir)
 				
 				# Adjust count for filters
-				nfilt[nvis[s]+nnir[s]+nmir[s]] += 1
+				nfilt[0:nvis[s]+nnir[s]+nmir[s]+1] += 1
 				# Adjust for SED filter combinations
 				if nvis[s] >= 3 and nnir[s] >= 3 and nmir[s] >= 3: nfilt[13] += 1
-				elif nvis[s] >= 3 and nnir[s] >= 3 and nmir[s] >= 2: nfilt[14] += 1
-				elif nvis[s] >= 3 and nnir[s] >= 2 and nmir[s] >= 2: nfilt[15] += 1
+				if nvis[s] >= 3 and nnir[s] >= 3 and nmir[s] >= 2: nfilt[14] += 1
+				if nvis[s] >= 3 and nnir[s] >= 2 and nmir[s] >= 2: nfilt[15] += 1
 				
 			# Print out options for filter counts
-			print "# Filters    # Stars"
+			print("# Filters    # Stars")
 			for f in range(13):
 				if nfilt[f] == 0: continue
-				print "   %3d       %7d" % (f, nfilt[f])
-			print "\nSED FITTING"
-			print "   %3d       %7d" % (333, nfilt[13])
-			print "   %3d       %7d" % (332, nfilt[14])
-			print "   %3d       %7d" % (322, nfilt[15])
+				print("   %3d       %7d" % (f, nfilt[f]))
+			print("\nSED FITTING")
+			print("   %3d       %7d" % (333, nfilt[13]))
+			print("   %3d       %7d" % (332, nfilt[14]))
+			print("   %3d       %7d" % (322, nfilt[15]))
 			minfilt = input('\nMinimum number of filters: ')
 			
 			# Trim stars
@@ -515,7 +469,7 @@ else:
 					if nvis[s] < 3 or nnir[s] < 2 or nmir[s] < 2:
 						member[s] = 0
 						trimmed += 1
-			print "REMOVED",trimmed,"stars."
+			print("Removed %d stars.  %d remaining." % (len(member[member==0]), len(member[member>0])))
 			
 		# Isochrone overplotting
 		if choice == 5:
@@ -536,7 +490,7 @@ else:
 				removechoice = raw_input('Adjust parameters? (y|n): ')
 				if removechoice == 'n':
 					isoplot = 0
-					print "Removing isochrone ridgeline."
+					print("Removing isochrone ridgeline.")
 					continue
 			isoage = input('Enter isochrone age: ')
 			isod = input('Enter isochrone m-M: ')
@@ -549,15 +503,15 @@ else:
 		# Reset trimming options
 		if choice == 9:
 			for s in range(len(member)): member[s] = 1
-			print "RESTORED", len(member), "stars."
+			print("Restored", len(member), "stars.")
 			
 	# Now that trimming is done, print out everything
 	catsplit = catalog.split('/')
 	if len(catsplit) > 1: prefix = "/".join(catsplit[0:len(catsplit)-1]) + "/"
 	else: prefix = ""
 	
-	print "!!! WRITING RESULTS TO OUTPUT FILE"
 	namesplit = catsplit[len(catsplit)-1].split('.')
+	print("Writing results to '%s'..." % (namesplit[0]+".Trimmed.txt"))
 	out = open(prefix+namesplit[0]+".Trimmed.txt", 'w')
 	for i in range(len(id2mass)):
 		if member[i] == 0: continue
@@ -570,7 +524,7 @@ else:
 			outstring += "%8.3f " % (mags[i, v+38])
 		outstring += "%5d " % (mempct[i])					# Add member information to output
 		outstring += "%5s " % (memchar[i])
-		print >>out, outstring
+		print(outstring, file=out)
 	out.close()	
-		
-		
+	
+	

@@ -1,38 +1,30 @@
-# Import modules
+# Implementation of BINOCS fitting routine.
 from __future__ import print_function, division
 import numpy as np
-import sys, binocs2
+import sys, binocs
 import matplotlib.pyplot as plt
-	
-	
-print("\n\n")
-print("===========================================")
-print("|                BINARYFIT                |")
-print("|             by Ben Thompson             |")
-print("===========================================")
-
 
 # Read in data from files
-options = binocs2.readopt((sys.argv)[1])
-info, mag = binocs2.readdata(options)
-oiso = binocs2.readiso(options)
+options = binocs.readopt((sys.argv)[1])
+info, mag = binocs.readdata(options)
+oiso = binocs.readiso(options)
 
 # Interpolate isochrone to new mass grid
-singles = binocs2.minterp(oiso, options['dm'])
+singles = binocs.minterp(oiso, options['dm'])
 
 # Adjust isochrone to empirical ridgeline, if necessary
-singles = binocs2.fidiso(singles, options)
+singles = binocs.fidiso(singles, options)
 
 # Create binary array
-binary = binocs2.makebin(singles, options)
+binary = binocs.makebin(singles, options)
 
 #### INITIAL BINARY FITTING
 # Run SED fitting on all stars in dataset
 print("\nComputing Initial Results.")
-results = binocs2.sedfit(singles, binary, mag, options)
+results = binocs.sedfit(singles, binary, mag, options)
 
 # Compute Initial Results
-summary = binocs2.summarize(results, binary, singles)
+summary = binocs.summarize(results, binary, singles)
 print("    Writing intial results to '%s--binary.txt'" % (options['data']))
 out = open(options['data']+"--binary.txt", "w")
 for s in range(mag.shape[0]):
@@ -47,13 +39,13 @@ out.close()
 print("\nComputing Synthetic Results.")
 
 # Create synthetic library
-synth = binocs2.makesynth(mag, binary, options)
+synth = binocs.makesynth(mag, binary, options)
 
 # Run SED fitting on synthetic library
-synth_results = binocs2.sedfit(singles, binary, synth, options)
+synth_results = binocs.sedfit(singles, binary, synth, options)
 	
 # Compute Synthetic Results
-synth_summary = binocs2.summarize(synth_results, binary, singles)
+synth_summary = binocs.summarize(synth_results, binary, singles)
 print("    Writing synthetic results to '%s--synth.txt'" % (options['data']))
 out = open(options['data']+"--synth.txt", "w")
 for s in range(synth.shape[0]):
