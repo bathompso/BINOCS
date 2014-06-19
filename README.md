@@ -1,34 +1,36 @@
-BINOCS
-======
-(Binary INformation from Open Clusters using SEDs)
---------------------------------------------------
+BINOCS (Binary INformation from Open Clusters using SEDs)
+=====
 
-BINOCS is a suite of python codes that facilitate binary star detection in open clusters. A paper detailing the inner workings of the main binaryfit routine, as well as initial results for several open clusters is in prep.
+BINOCS is a suite of python codes that facilitate binary star detection in open clusters. This code, and the method it implements, is described in Thompson et al. (*in prep*)
 
-Dependencies
+
+
+Installation
 ------------
+BINOCS code will run under Python versions 2.7.x, as well as Python 3.x
 
-Running the included python programs will require Python 2.7 or above, as well as NumPy.
+In addition to the default Python modules, BINOCS requires the following modules be installed: 
 
-The binaryfit python routines are parallelized in order to run in a reasonable amount of time. Before running any of these routines, please make sure to install the python module [PyOpenCL](http://mathema.tician.de/software/pyopencl/)
+* NumPy
+* SciPy
+* MatPlotLib
+* PyOpenCL
 
-Component Codes
----------------
-
-### PAYST
-
-PAYST (Recursive Acronym: Payst All Your Stuff Together) handles the merging and trimming of individual photometry datasets. The binaryfit routine requires photometry over a large wavelength range (visual through mid-IR), but often studies only contain a specific region. PAYST matches stars between datasets by coordinates and outputs a matched dataset file.
-
-### MakeIso
-
-MakeIso reads in base isochrone files and creates a full isochrone catalog that can be read by the main binaryfit program. Currently, makeiso can handle reading inputs from the Dartmouth, Padova, PARSEC and Y<sup>2</sup> isochrone systems.
-
-### BinaryFit
-
-BinaryFit compares a full cluster dataset (created through PAYST) and an isochrone model (created through MakeIso) to detect binary systems within the cluster. The output file will include determinations of binary, single and non-member stars, as well as mass determinations for member binaries and singles.
+All necessary modules can be installed via `pip`. Once pre-requisites are met, simply add the `binocs/python` folder to your `$PYTHONPATH` variable.
 
 
-Specific details on how to run each component code is located within the individual code's readme file.
+
+Available Routines
+------
+
+The BINOCS code consists of three separate routines, each of which is implemented by a program in the BINOCS root folder:
+
+* `payst` --- handles matching of photometry data files, as well as membership data, into a formatted master catalog
+* `makeiso` --- processes downloaded isochrone files into a readable format 
+* `binaryfit` --- executes the BINOCS binary detection technique
+
+Descriptions of input, execution, and output of each of the routines is located in files in the `doc` folder.
+
 
 
 License
@@ -38,7 +40,7 @@ Copyright 2014 Ben Thompson
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-If you publish results using this software, please reference Thompson et al. (2014, in prep).
+If you publish results using this software, please reference Thompson et al. (*in prep*).
 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
