@@ -6,7 +6,7 @@ from time import time
 from .kernel import sedkernel
 import sys
 
-def sedfit(singles, binary, mag, options):
+def sedfit(singles, binary, mag, options, chicut=10.0):
 	"""SEDFIT
 	DESCRIPTION: Nearest-neighbor comparison between star data and synthetic models
 	INPUT:       singles -- isochrone data from readiso, minterp or fidiso
@@ -84,7 +84,7 @@ def sedfit(singles, binary, mag, options):
 		d_chi, d_fit = cl.Buffer(context, cl.mem_flags.WRITE_ONLY, bestchi.nbytes), cl.Buffer(context, cl.mem_flags.WRITE_ONLY, bestfit.nbytes)
 		
 		# Compare stars to binary models
-		binsub(queue, bestchi.shape, None, d_binary, d_data, d_err, d_chi, d_fit, 10.0, binary.shape[0])
+		binsub(queue, bestchi.shape, None, d_binary, d_data, d_err, d_chi, d_fit, chicut, binary.shape[0])
 		queue.finish()
 		cl.enqueue_copy(queue, bestchi, d_chi)
 		cl.enqueue_copy(queue, bestfit, d_fit)
