@@ -34,6 +34,7 @@ def savemag(dataarr, mag, mempct, memchar, index, filters, maxerr):
 def paystmatch(optname, minradius, maxerr=0.1):
 	# Define variables
 	maxlines, nfiles, ctr, oldctr = 0, 0, 0, 0
+	masterfilters = ['U', 'B', 'V', 'R', 'I', 'SU', 'SG', 'SR', 'SI', 'SZ', 'J', 'H', 'K', 'B1', 'B2', 'B3', 'B4', 'B5', 'B6']
 	
 	# Initialize OpenCL Routine
 	cookernel = """__kernel void coomatch(__global float* ra, __global float* dec, __global float* thesera, __global float* thesedec, __global int* indexes, __global int* matched, const float radius, const int length) 
@@ -339,7 +340,7 @@ def paysttrim(catalog):
 				# Show trimming radius on plot
 				radra, raddec = [], []
 				for e in range(100):
-					angle = 2.0*math.pi * (float(e)/100.0)
+					angle = 2.0*np.pi * (float(e)/100.0)
 					radra.append(clra + np.cos(angle) * clrad)
 					raddec.append(cldec + np.sin(angle) * clrad)
 				plt.clf()
