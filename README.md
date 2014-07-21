@@ -13,7 +13,6 @@ In addition to the default Python modules, BINOCS requires the following modules
 
 * NumPy
 * SciPy
-* MatPlotLib
 * PyOpenCL
 
 All necessary modules can be installed via `pip`. Once pre-requisites are met, simply add the `binocs/python` folder to your `$PYTHONPATH` variable.

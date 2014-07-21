@@ -2,7 +2,6 @@
 from __future__ import print_function, division
 import numpy as np
 import sys, binocs
-import matplotlib.pyplot as plt
 
 # Read in data from files
 options = binocs.readopt((sys.argv)[1])
