@@ -1,8 +1,17 @@
-# BINOCS threshold test
-# Described in section 5.3 of Thompson et al. (in prep)
 from __future__ import print_function, division
 import numpy as np
 import sys, binocs
+
+'''
+	PROGRAM:		THRESHOLD
+	DESCRIPTION: Computes confusion percentage (false positives and true negatives) for BINOCS routine, for various threshold values.
+	             Described in section 5.3 of Thompson et al. (in prep).
+	INPUT: [From command line] BINOCS option file, specifying data file and isochrone to be used.
+	OUTPUT: None
+	FILE OUTPUT: "binocs_thresh.%02d.dat" -- Output summary file for each threshold value used.
+	                 Columns: [B Magnitude] [V Magnitude] [J Magnitude] [K Magnitude] [Actual Membership Flag] [Derived Membership Flag]
+	                 Membership Flags: 0 = Non-Member; 1 = Member
+'''
 
 # Read in data from files
 options = binocs.readopt((sys.argv)[1])
