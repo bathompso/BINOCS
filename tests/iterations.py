@@ -9,16 +9,16 @@ import sys, binocs, subprocess
 	INPUT: [From command line] BINOCS option file, specifying data file and isochrone to be used.
 	OUTPUT: None
 	FILE OUTPUT: "binocs_iter.%04d.dat" -- Output summary file for each number of iterations used.
-	                 Columns: [Star Line Number] [5x Individual Run Primary Mass] [Primary Sigma] [5s Individual Run Secondary Mass] [Secondary Sigma]
+	                 Columns: [Star Line Number] [5x Individual Run Primary Mass] [Primary Sigma] [5x Individual Run Secondary Mass] [Secondary Sigma]
 	                 Sigma values are explained in section 5.1 of Thompson et al. (in prep)
 '''
 nruns = [3, 10, 30, 90, 150, 200, 300, 400, 500, 600, 700, 1200]
 
-# Check to see whether files already exist
-out_files = subprocess.check_output("ls binocs_iter*", shell=True).splitlines()
-
 # Output files exist, read in this data and print to terminal
-if len(out_files) == len(nruns):
+try:
+	# Check to see whether files already exist
+	out_files = subprocess.check_output("ls binocs_iter*", shell=True).splitlines()
+
 	for f in out_files:
 		this_nruns = int(f.split('.')[1])
 	
@@ -56,7 +56,7 @@ if len(out_files) == len(nruns):
 		
 
 # This has not be run before. Compute tests
-else:
+except:
 	# Read in data from files
 	options = binocs.readopt((sys.argv)[1])
 	info, mag = binocs.readdata(options)
@@ -106,16 +106,3 @@ else:
 				sec_out += "%6.3f " % iteration_summary[m,1,i]
 			print("%7d  %s %7.4f   %s %7.4f" % (m, pri_out, primary_sigma[m], sec_out, secondary_sigma[m]), file=of)
 		of.close()
-		
-		# Select only valid results
-		primary_sigma, secondary_sigma = primary_sigma[primary_sigma > -0.5], secondary_sigma[secondary_sigma > -0.5]
-	
-		# Sort sigmas
-		primary_sigma, secondary_sigma = np.sort(primary_sigma), np.sort(secondary_sigma)
-
-		sigmas[n,0], sigmas[n,1] = np.median(primary_sigma), np.median(secondary_sigma)
-		sigmas[n,2] = primary_sigma[int(0.97 * len(primary_sigma))]
-		sigmas[n,3] = secondary_sigma[int(0.97 * len(secondary_sigma))]
-	
-	for n in range(len(nruns)):
-		print("%3d  %.3f %.3f %.3f %.3f" % (nruns[n], sigmas[n,0], sigmas[n,1], sigmas[n,2], sigmas[n,3]))
