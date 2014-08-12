@@ -30,3 +30,11 @@ The BINOCS code consists of three separate routines, each of which is implemente
 
 Descriptions of input, execution, and output of each of the routines is located in files in the `doc` folder.
 
+
+Publications
+-------
+
+Publications use various versions of the BINOCS code. While all versions should produce nearly-exact results, there may be some variation between versions. Publications and their associated branches are listed below:
+
+* *Thompson et al. (in prep)* - Branch `v2_0`
+
