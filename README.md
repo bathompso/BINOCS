@@ -34,7 +34,7 @@ Descriptions of input, execution, and output of each of the routines is located 
 Publications
 -------
 
-Publications use various versions of the BINOCS code. While all versions should produce nearly-exact results, there may be some variation between versions. Publications and their associated branches are listed below:
+Publications use various versions of the BINOCS code. While all versions should produce nearly-exact results, there may be some variation between versions. Publications and their associated tags are listed below:
 
-* *Thompson et al. (in prep)* - Branch `v2_0`
+* *BINOCS I: Radial Migration of Binary Systems in Open Clusters.* Thompson et al. (in prep) - [Tagged version 2.1](https://github.com/bathompso/BINOCS/releases/tag/v2.1)
 
