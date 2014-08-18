@@ -125,7 +125,7 @@ def makesynth(mag, binary, options):
 	for f in range(17):
 		if filt_used[f] == 0: continue
 		rand1, rand2 = np.random.rand(synth.shape[0]), np.random.rand(synth.shape[0])
-		synth[:,2*f] = synth[:,2*f] + np.sqrt(-2 * np.log(rand1)) * np.cos(2 * np.pi * rand2) * synth[:,2*f+1]
+		synth[:,2*f] = synth[:,2*f] + np.sqrt(-2 * np.log(rand1)) * np.cos(2 * np.pi * rand2) * synth[:,2*f+1] * 2.0
 	print("Done.")
 	
 	return synth

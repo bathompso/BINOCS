@@ -6,7 +6,7 @@ from time import time
 from .kernel import sedkernel
 import sys
 
-def sedfit(singles, binary, mag, options, chicut=10.0):
+def sedfit(singles, binary, mag, options, chicut=10.0, nvis=3, nnir=3, nmir=2):
 	"""SEDFIT
 	DESCRIPTION: Nearest-neighbor comparison between star data and synthetic models
 	INPUT:       singles -- isochrone data from readiso, minterp or fidiso
@@ -23,7 +23,7 @@ def sedfit(singles, binary, mag, options, chicut=10.0):
 	"""
 	
 	# Prepare OpenCL routine
-	kernelstr = sedkernel(3,3,2)
+	kernelstr = sedkernel(nvis,nnir,nmir)
 	context = cl.create_some_context()
 	queue = cl.CommandQueue(context)
 	program = cl.Program(context, kernelstr).build()
