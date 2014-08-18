@@ -112,7 +112,8 @@ def makesynth(mag, binary, options):
 	for m in range(len(mag_bins)):
 		bin_idx = np.array([synth[x,err_mag] >= mag_bins[m] and synth[x,err_mag] < mag_bins[m]+0.5 for x in range(synth.shape[0])])
 		for f in range(17): 
-			if filt_used[f] == 1: synth[bin_idx,2*f+1] = avg_err[m,f]
+			# Use double the normal uncertainty
+			if filt_used[f] == 1: synth[bin_idx,2*f+1] = avg_err[m,f] * 2.0
 			else: synth[bin_idx,2*f+1] = 9.999
 	
 	# Give errors to stars outside range
@@ -125,7 +126,7 @@ def makesynth(mag, binary, options):
 	for f in range(17):
 		if filt_used[f] == 0: continue
 		rand1, rand2 = np.random.rand(synth.shape[0]), np.random.rand(synth.shape[0])
-		synth[:,2*f] = synth[:,2*f] + np.sqrt(-2 * np.log(rand1)) * np.cos(2 * np.pi * rand2) * synth[:,2*f+1] * 2.0
+		synth[:,2*f] = synth[:,2*f] + np.sqrt(-2 * np.log(rand1)) * np.cos(2 * np.pi * rand2) * synth[:,2*f+1]
 	print("Done.")
 	
 	return synth
