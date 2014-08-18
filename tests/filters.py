@@ -10,8 +10,7 @@ from copy import copy
 	INPUT: [From command line] BINOCS option file, specifying data file and isochrone to be used.
 	OUTPUT: None
 	FILE OUTPUT: "binocs_filter.%03d.dat" -- Output summary file for each filter combination used.
-	                 Columns: [B Magnitude] [V Magnitude] [J Magnitude] [K Magnitude] [Actual Membership Flag] [Derived Membership Flag]
-	                 Membership Flags: 0 = Non-Member; 1 = Member
+	                 Columns: [Actual Primary Mass] [5x Primary Mass Estimates] [Actual Secondary Mass] [5x Secondary Mass Estimates]
 '''
 
 filter_combos =	[ np.array([0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]),	# 101: g[3.6]
