@@ -67,7 +67,7 @@ except:
 			best_mass[:,r,0], best_mass[:,r,1] = summary[:,0], summary[:,2]
 			
 		# Print out results
-		of = open("binocs_filter.%d%d%d.dat" % (np.sum(f[0:10]), np.sum(f[10:13]), np.sum(f[13:17])))
+		of = open("binocs_filter.%d%d%d.dat" % (np.sum(f[0:10]), np.sum(f[10:13]), np.sum(f[13:17])), 'w')
 		for i in range(binary.shape[0]):
 			outstr = "%7.4f  %s    %7.4f  %s" % (binary[i,0], ' '.join(["%7.4f" % x for x in best_mass[i,:,0]]), binary[i,1], ' '.join(["%7.4f" % x for x in best_mass[i,:,1]]))
 		of.close()
