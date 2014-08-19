@@ -71,11 +71,12 @@ def minterp(oiso, dm):
 	
 	
 
-def fidiso(iso, options):
+def fidiso(iso, options, file_output=True):
 	"""FIDISO
 	DESCRIPTION: Adjusts isochrone data to empirical ridgelines
 	INPUT:       iso -- isochrone data
 	             options -- parameter dictionary from readopt
+	             file_output -- boolean flag to determine whether file with adjusted isochrone magnitude should be output
 	OUTPUT:      fiso -- empirically-adjusted isochrone data
 	                0-1: Primary / Secondary Mass
 	                2-5: Parameters: LogL, LogT, LogG, Mbol
@@ -168,19 +169,20 @@ def fidiso(iso, options):
 				fiso[i,f] = orig_diff + fiso[i+1,f]
 	print(" Done.")
 	
-	ndirsplit = options['data'].split('/')
-	if len(ndirsplit) == 1: 
-		ndirsplit = os.path.realpath(options['data']).split('/')
-		fidoutname = "iso_%s.fid.dat" % (ndirsplit[-2])
-	else: fidoutname = "%s/iso_%s.fid.dat" % ('/'.join(ndirsplit[0:len(ndirsplit)-1]), ndirsplit[len(ndirsplit)-2])
-	fio = open(fidoutname, "w")
-	for s in range(fiso.shape[0]):
-		outstr = "%6.3f " % options['age']
-		for i in range(6): outstr += "%7.4f " % fiso[s,i]
-		for i in range(6,23): outstr += "%6.3f " % fiso[s,i]
-		print(outstr, file=fio)
-	fio.close()
-	print("    Adjusted isochrone written to '%s'" % fidoutname)
+	if file_output:
+		ndirsplit = options['data'].split('/')
+		if len(ndirsplit) == 1: 
+			ndirsplit = os.path.realpath(options['data']).split('/')
+			fidoutname = "iso_%s.fid.dat" % (ndirsplit[-2])
+		else: fidoutname = "%s/iso_%s.fid.dat" % ('/'.join(ndirsplit[0:len(ndirsplit)-1]), ndirsplit[len(ndirsplit)-2])
+		fio = open(fidoutname, "w")
+		for s in range(fiso.shape[0]):
+			outstr = "%6.3f " % options['age']
+			for i in range(6): outstr += "%7.4f " % fiso[s,i]
+			for i in range(6,23): outstr += "%6.3f " % fiso[s,i]
+			print(outstr, file=fio)
+		fio.close()
+		print("    Adjusted isochrone written to '%s'" % fidoutname)
 	
 	return fiso
 	

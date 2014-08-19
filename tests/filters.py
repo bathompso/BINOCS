@@ -35,8 +35,8 @@ except:
 	info, mag = binocs.readdata(options)
 	oiso = binocs.readiso(options)
 	singles = binocs.minterp(oiso, options['dm'])
-	singles = binocs.fidiso(singles, options)
-	binary = binocs.makebin(singles, options)
+	singles = binocs.fidiso(singles, options, file_output=False)
+	binary = binocs.makebin(singles, options, file_output=False)
 	synth = binocs.makesynth(mag, binary, options)
 	
 	# Check to see whether UBVRI or ugriz data exists

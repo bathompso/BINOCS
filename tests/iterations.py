@@ -57,19 +57,12 @@ try:
 
 # This has not be run before. Compute tests
 except:
-	# Read in data from files
 	options = binocs.readopt((sys.argv)[1])
 	info, mag = binocs.readdata(options)
 	oiso = binocs.readiso(options)
-
-	# Interpolate isochrone to new mass grid
 	singles = binocs.minterp(oiso, options['dm'])
-
-	# Adjust isochrone to empirical ridgeline, if necessary
-	singles = binocs.fidiso(singles, options)
-
-	# Create binary array
-	binary = binocs.makebin(singles, options)
+	singles = binocs.fidiso(singles, options, file_output=False)
+	binary = binocs.makebin(singles, options, file_output=False)
 
 	# Loop through different number of iterations
 	sigmas = np.zeros([len(nruns), 4])

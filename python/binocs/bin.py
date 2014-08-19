@@ -3,11 +3,12 @@ from __future__ import print_function, division
 import numpy as np
 import os, sys
 
-def makebin(iso, options):
+def makebin(iso, options, file_output=True):
 	"""MAKEBIN
 	DESCRIPTION: Flux-combines single isochrone stars into model binaries
 	INPUT:       iso -- isochrone data
 	             options -- parameters dictionary from readopt
+	             file_output -- boolean flag to determine whether file with model magnitudes should be output
 	OUTPUT:      bin -- Binary star data
 	                  0-1: Primary / Secondary Mass
 	                  2-5: Zeros
@@ -50,20 +51,21 @@ def makebin(iso, options):
 	print("    Created %d binary models for comparison." % bin.shape[0])
 	
 	# Print created binaries to file
-	if len(options['data'].split('/')) == 1: outdir = ''
-	else: outdir = '/'.join(options['data'].split('/')[0:len(options['data'].split('/'))-1]) + '/'
+	if file_output:
+		if len(options['data'].split('/')) == 1: outdir = ''
+		else: outdir = '/'.join(options['data'].split('/')[0:len(options['data'].split('/'))-1]) + '/'
 	
-	if options['fid'] == '': basename = 'iso'
-	else: basename = options['fid'].split('/')[-1].split('.')[0]
+		if options['fid'] == '': basename = 'iso'
+		else: basename = options['fid'].split('/')[-1].split('.')[0]
 	
-	binoutname = "%s%s.m%03d.a%05d.bin" % (outdir, basename, options['dm']*100, options['age']*1000)
-	bo = open(binoutname, 'w')
-	for b in range(bin.shape[0]):
-		outstr = "%7.4f %7.4f " % (bin[b,0], bin[b,1])
-		for i in range(6,23): outstr += "%6.3f " % bin[b,i]
-		print(outstr, file=bo)
-	bo.close()
-	print("    Binary models output to '%s'" % (binoutname))
+		binoutname = "%s%s.m%03d.a%05d.bin" % (outdir, basename, options['dm']*100, options['age']*1000)
+		bo = open(binoutname, 'w')
+		for b in range(bin.shape[0]):
+			outstr = "%7.4f %7.4f " % (bin[b,0], bin[b,1])
+			for i in range(6,23): outstr += "%6.3f " % bin[b,i]
+			print(outstr, file=bo)
+		bo.close()
+		print("    Binary models output to '%s'" % (binoutname))
 	
 	return bin
 
@@ -112,8 +114,7 @@ def makesynth(mag, binary, options):
 	for m in range(len(mag_bins)):
 		bin_idx = np.array([synth[x,err_mag] >= mag_bins[m] and synth[x,err_mag] < mag_bins[m]+0.5 for x in range(synth.shape[0])])
 		for f in range(17): 
-			# Use double the normal uncertainty
-			if filt_used[f] == 1: synth[bin_idx,2*f+1] = avg_err[m,f] * 2.0
+			if filt_used[f] == 1: synth[bin_idx,2*f+1] = avg_err[m,f]
 			else: synth[bin_idx,2*f+1] = 9.999
 	
 	# Give errors to stars outside range
