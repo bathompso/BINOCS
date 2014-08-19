@@ -1,6 +1,6 @@
 from __future__ import print_function, division
 import numpy as np
-import sys, binocs
+import sys, binocs, subprocess
 from copy import copy
 
 '''
@@ -26,6 +26,38 @@ filter_combos =	[ np.array([0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]),
 try:
 	# Check to see whether files already exist
 	out_files = subprocess.check_output("ls binocs_filter*", shell=True).splitlines()
+	pct_error = np.zeros([len(out_files), 11, 2])
+	
+	# Loop through files and compute percent uncertainties
+	for f in range(len(out_files)):
+		data = np.loadtxt(out_files[f])
+		data_errors = np.zeros([data.shape[0], 4])
+		data_errors[:,0], data_errors[:,2] = data[:,0], data[:,6]
+	
+		for l in range(data.shape[0]):
+			# Primary percent uncertainty
+			pri_err = [np.abs(data[l,i]-data[l,0]) / data[l,0] * 100 for i in range(1,6) if data[l,i] > 0]
+			if len(pri_err) > 0: data_errors[l,1] = np.mean(pri_err) + np.std(pri_err)
+			else: data_errors[l,1] = -1
+			# Secondary percent uncertainty
+			if data[l,6] == 0: continue
+			sec_err = [np.abs(data[l,i]-data[l,6]) / data[l,6] * 100 for i in range(7,12) if data[l,i-6] > 0]
+			if len(sec_err) > 0: data_errors[l,3] = np.mean(sec_err) + np.std(sec_err)
+			else: data_errors[l,3] = -1
+			
+		# Collapse percent errors into grid
+		for q in range(11):
+			bin_pri = [data_errors[x,1] for x in range(data_errors.shape[0]) if data_errors[x,2] / data_errors[x,0] >= q/10 and data_errors[x,2] / data_errors[x,0] < (q+1)/10 and data_errors[x,1] >= 0]
+			if len(bin_pri) > 0: pct_error[f,q,0] = np.mean(bin_pri)
+			
+			bin_sec = [data_errors[x,3] for x in range(data_errors.shape[0]) if data_errors[x,2] / data_errors[x,0] >= q/10 and data_errors[x,2] / data_errors[x,0] < (q+1)/10 and data_errors[x,3] >= 0]
+			if len(bin_sec) > 0: pct_error[f,q,1] = np.mean(bin_sec)
+			
+	# Print results
+	for m in range(2):
+		print("\n")
+		for f in range(len(out_files)):
+			print("%3s  %s" % (out_files[f][14:17], ' '.join(["%5.1f" % x for x in pct_error[f,:,m]])))
 
 
 
