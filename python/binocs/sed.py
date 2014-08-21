@@ -6,7 +6,7 @@ from time import time
 from .kernel import sedkernel
 import sys
 
-def sedfit(singles, binary, mag, options, chicut=10.0, nvis=3, nnir=3, nmir=2):
+def sedfit(singles, binary, mag, options, chicut=10.0, nvis=2, nnir=2, nmir=2):
 	"""SEDFIT
 	DESCRIPTION: Nearest-neighbor comparison between star data and synthetic models
 	INPUT:       singles -- isochrone data from readiso, minterp or fidiso
@@ -54,8 +54,7 @@ def sedfit(singles, binary, mag, options, chicut=10.0, nvis=3, nnir=3, nmir=2):
 	# Choose ETA printing frequency, based on total number of runs
 	if options['nruns'] < 200: p = 10
 	elif options['nruns'] < 500: p = 30
-	elif options['nruns'] < 1000: p = 50
-	else: p = 100
+	else: p = 50
 	
 	results = np.zeros([mag.shape[0], 2, options['nruns'], 2])
 	
