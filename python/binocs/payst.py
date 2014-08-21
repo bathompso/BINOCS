@@ -4,7 +4,9 @@ import pyopencl as cl
 import numpy as np
 from time import time
 import matplotlib.pyplot as plt
+import matplotlib
 import sys
+matplotlib.use('GTK')
 
 def extendarr(id2mass, mag, mempct, memchar, match):
 	id2mass.append('00000000+0000000')
