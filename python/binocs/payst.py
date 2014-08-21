@@ -1,7 +1,5 @@
 # PAYST subroutines
 from __future__ import print_function, division
-import matplotlib
-matplotlib.use('GTK')
 import pyopencl as cl
 import numpy as np
 from time import time
