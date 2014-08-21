@@ -450,6 +450,7 @@ def paysttrim(catalog):
 			print("   %3d       %7d" % (332, nfilt[14]))
 			print("   %3d       %7d" % (322, nfilt[15]))
 			minfilt = input('\nMinimum number of filters: ')
+			minfilt_str = "%03d" % minfilt
 			
 			# Trim stars
 			trimmed = 0
@@ -458,18 +459,11 @@ def paysttrim(catalog):
 					if nvis[s]+nnir[s]+nmir[s] < minfilt:
 						member[s] = 0
 						trimmed += 1
-				elif minfilt == 333:
-					if nvis[s] < 3 or nnir[s] < 3 or nmir[s] < 3:
+				else:
+					if nvis[s] < int(minfilt_str[0]) or nnir[s] < int(minfilt_str[1]) or nmir[s] < int(minfilt_str[2]):
 						member[s] = 0
 						trimmed += 1
-				elif minfilt == 332:
-					if nvis[s] < 3 or nnir[s] < 3 or nmir[s] < 2:
-						member[s] = 0
-						trimmed += 1
-				elif minfilt == 322:
-					if nvis[s] < 3 or nnir[s] < 2 or nmir[s] < 2:
-						member[s] = 0
-						trimmed += 1
+					
 			print("Removed %d stars.  %d remaining." % (len(member[member==0]), len(member[member>0])))
 			
 		# Isochrone overplotting
