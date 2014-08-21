@@ -25,7 +25,7 @@ filter_combos =	[ np.array([0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]),
 # Output files exist, read in this data and print to terminal
 try:
 	# Check to see whether files already exist
-	out_files = subprocess.check_output("ls binocs_filter*", shell=True).splitlines()
+	out_files = subprocess.check_output("ls binocs_filter*.dat", shell=True).splitlines()
 	pct_error = np.zeros([len(out_files), 11, 2])
 	
 	# Loop through files and compute percent uncertainties
@@ -53,11 +53,37 @@ try:
 			bin_sec = [data_errors[x,3] for x in range(data_errors.shape[0]) if data_errors[x,2] / data_errors[x,0] >= q/10 and data_errors[x,2] / data_errors[x,0] < (q+1)/10 and data_errors[x,3] >= 0]
 			if len(bin_sec) > 0: pct_error[f,q,1] = np.mean(bin_sec)
 			
-	# Print results
+	# Print results to screen
 	for m in range(2):
 		print("\n")
 		for f in range(len(out_files)):
 			print("%3s  %s" % (out_files[f][14:17], ' '.join(["%5.1f" % x for x in pct_error[f,:,m]])))
+			
+	# Print results to LaTeX file
+	filternames = ['U','B','V','R','I','u','g','r','i','z','J','H','K_S','[3.6]','[4.5]','[5.8]','[8.0]']
+	of = open('binocs_filter.tex', 'w')
+	# Print Header
+	print('\\begin{table*} \centering \small', file=of)
+	print('\\begin{tabular}{|l|ccccccccccc|c|}', file=of)
+	print('\multicolumn{1}{c}{} & \multicolumn{11}{c}{Mass Ratio} & \multicolumn{1}{c}{} \\\\', file=of)
+	print('\multicolumn{1}{c}{Filters} & 0.0 & 0.1 & 0.2 & 0.3 & 0.4 & 0.5 & 0.6 & 0.7 & 0.8 & 0.9 & \multicolumn{1}{c}{1.0} & \n\t\multicolumn{1}{c}{\multirow{8}{*}{\\vspace{-0.7cm}\\begin{turn}{-90}1$\sigma$ \% Error in $M_{\\text{pri}}$ \end{turn}}} \\\\ \hline \hline', file=of)
+	for m in range(2):
+		for f in range(len(out_files)):
+			filtdisplay = np.array(copy(filternames))
+			filtdisplay[filter_combos[f] == 0] = '.'
+			if m == 0: outstr = "%3s: $%s$%s & %s" % (out_files[f][14:17], ''.join(filtdisplay[5:13]), ''.join(filtdisplay[13:]), ' & '.join(["%5.1f" % x for x in pct_error[f,:,m]]))
+			else: outstr = "%3s: $%s$%s & ... & %s" % (out_files[f][14:17], ''.join(filtdisplay[5:13]), ''.join(filtdisplay[13:]), ' & '.join(["%5.1f" % x for x in pct_error[f,1:,m]]))
+			# First line of table has special ending
+			if f == len(out_files)-1: 
+				if m == 0: outstr += ' & \n\t\multirow{8}{*}{\\vspace{-0.7cm}\\begin{turn}{-90}1$\sigma$ \% Error in $M_{\\text{sec}}$ \end{turn}} \\\\ \hline \hline'
+				else: outstr += ' & \\\\ \hline'
+			else: outstr += ' & \\\\'
+			print(outstr, file=of)
+	# Print footer
+	print('\end{tabular}', file=of)
+	print('\caption{1$\sigma$ \% errors in mass estimates for various combinations of filters. \label{tab:filters_test}}', file=of)
+	print('\end{table*}', file=of)
+	of.close()
 
 
 
