@@ -63,10 +63,10 @@ try:
 	filternames = ['U','B','V','R','I','u','g','r','i','z','J','H','K_S','[3.6]','[4.5]','[5.8]','[8.0]']
 	of = open('binocs_filter.tex', 'w')
 	# Print Header
-	print('\\begin{table*} \centering \small', file=of)
-	print('\\begin{tabular}{|l|ccccccccccc|c|}', file=of)
-	print('\multicolumn{1}{c}{} & \multicolumn{11}{c}{Mass Ratio} & \multicolumn{1}{c}{} \\\\', file=of)
-	print('\multicolumn{1}{c}{Filters} & 0.0 & 0.1 & 0.2 & 0.3 & 0.4 & 0.5 & 0.6 & 0.7 & 0.8 & 0.9 & \multicolumn{1}{c}{1.0} & \n\t\multicolumn{1}{c}{\multirow{8}{*}{\\vspace{-0.7cm}\\begin{turn}{-90}1$\sigma$ \% Error in $M_{\\text{pri}}$ \end{turn}}} \\\\ \hline \hline', file=of)
+	print('\\begin{table} \centering \small', file=of)
+	print('\\begin{tabular}{|l|ccccccccccc|c|} \hline', file=of)
+	print('\multicolumn{1}{|c|}{} & \multicolumn{11}{c}{Mass Ratio} & \multicolumn{1}{c|}{} \\\\', file=of)
+	print('\multicolumn{1}{|c|}{Filter Combinations} & 0.0 & 0.1 & 0.2 & 0.3 & 0.4 & 0.5 & 0.6 & 0.7 & 0.8 & 0.9 & \multicolumn{1}{c}{1.0} & \n\t\multicolumn{1}{c|}{\multirow{8}{*}{\\vspace{-0.7cm}\\begin{turn}{-90}1$\sigma$ \% Error in $M_{\\text{pri}}$ \end{turn}}} \\\\ \hline \hline', file=of)
 	for m in range(2):
 		for f in range(len(out_files)):
 			filtdisplay = np.array(copy(filternames))
@@ -82,7 +82,7 @@ try:
 	# Print footer
 	print('\end{tabular}', file=of)
 	print('\caption{1$\sigma$ \% errors in mass estimates for various combinations of filters. \label{tab:filters_test}}', file=of)
-	print('\end{table*}', file=of)
+	print('\end{table}', file=of)
 	of.close()
 
 
