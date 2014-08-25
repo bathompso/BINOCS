@@ -1,6 +1,6 @@
 from __future__ import print_function, division
 import numpy as np
-import sys, binocs
+import sys, binocs, subprocess
 
 '''
 	PROGRAM:		THRESHOLD
@@ -22,14 +22,16 @@ try:
 	
 	confusion_matrix = np.zeros([len(out_files), 3])
 	for f in range(len(out_files)):
-		this_threshold = float(outfiles[f][14:16])
+		this_threshold = float(out_files[f][14:16])
 		confusion_matrix[f,0] = this_threshold
-		
+	
 		data = np.loadtxt(out_files[f])
+		data = data[data[:,0] > 0.5,:]
 		true_members, true_non = data[data[:,6] == 1,:], data[data[:,6] == 0,:]
-		confusion_matrix[f,1] = true_members[true_members[:,7] == 1,:].shape[0] / true_members.shape[0]
-		confusion_matrix[f,2] = true_non[true_non[:,7] == 0,:].shape[0] / true_non.shape[0]
-		
+		confusion_matrix[f,1] = true_members[true_members[:,7] == 0,:].shape[0] / true_members.shape[0] * 100
+		confusion_matrix[f,2] = true_non[true_non[:,7] == 1,:].shape[0] / true_non.shape[0] * 100
+		print("%4.1f  %5.1f %5.1f" % (confusion_matrix[f,0], confusion_matrix[f,1], confusion_matrix[f,2]))
+	
 except:
 	options = binocs.readopt((sys.argv)[1])
 	info, mag = binocs.readdata(options)
@@ -38,6 +40,17 @@ except:
 	singles = binocs.fidiso(singles, options, file_output=False)
 	binary = binocs.makebin(singles, options, file_output=False)
 	single_synth = binocs.makesynth(mag, binary, options)
+	
+	# Only allow certain filters in final dataset (otherwise it's not showing reality)
+	f = [0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0]
+	# Check to see whether UBVRI or ugriz data exists
+	if len(mag[mag[:,12] < 80,12]) == 0:
+		# No ugriz data, swap columns with UBVRI
+		f[0:5] = f[5:10]
+		f[5:10] = 0
+	# Remove unnecessary magnitudes
+	for i in range(17):
+		if f[i] == 0: single_synth[:,2*i], single_synth[:,2*i+1] = 99.999, 9.999
 	
 	synth = np.zeros([3*single_synth.shape[0], single_synth.shape[1]])
 	synthlen = single_synth.shape[0]
