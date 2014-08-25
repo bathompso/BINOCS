@@ -5,7 +5,8 @@ from scipy import interpolate
 import os, sys
 
 def minterp(oiso, dm):
-	"""MINTERP
+	'''
+	SUBROUTINE:			MINTERP
 	DESCRIPTION: Interpolates isochrone onto a more fine mass grid
 	INPUT:       oiso -- original isochrone
 	             dm -- Mass increment between resulting isochrone points
@@ -13,7 +14,7 @@ def minterp(oiso, dm):
 	                0-1: Primary / Secondary Mass
 	                2-5: Parameters: LogL, LogT, LogG, Mbol
 	                6-22: Magnitudes
-	"""
+	'''
 	
 	print("\nInterpolating isochrone to %.3f M_sun..." % dm)
 	
@@ -72,16 +73,18 @@ def minterp(oiso, dm):
 	
 
 def fidiso(iso, options, file_output=True):
-	"""FIDISO
+	'''
+	SUBROUTINE:			FIDISO
 	DESCRIPTION: Adjusts isochrone data to empirical ridgelines
 	INPUT:       iso -- isochrone data
-	             options -- parameter dictionary from readopt
+	             options -- parameter dictionary from READOPT
 	             file_output -- boolean flag to determine whether file with adjusted isochrone magnitude should be output
 	OUTPUT:      fiso -- empirically-adjusted isochrone data
 	                0-1: Primary / Secondary Mass
 	                2-5: Parameters: LogL, LogT, LogG, Mbol
 	                6-22: Magnitudes
-	"""
+	FILE OUTPUT: 'iso_[cluster].fid.dat' -- File containing the adjusted isochrone magnitudes. Same format as original isochrone file.
+	'''
 	
 	# Check to see if this operation is necessary
 	if options['fid'] == '': return iso

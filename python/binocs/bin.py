@@ -1,19 +1,23 @@
-# BINOCS binary-creation subroutine
+# BINOCS synthetic dataset creation routines
 from __future__ import print_function, division
 import numpy as np
 import os, sys
 
 def makebin(iso, options, file_output=True):
-	"""MAKEBIN
+	'''
+	SUBROUTINE:			MAKEBIN
 	DESCRIPTION: Flux-combines single isochrone stars into model binaries
 	INPUT:       iso -- isochrone data
-	             options -- parameters dictionary from readopt
+	             options -- parameters dictionary from READOPT
 	             file_output -- boolean flag to determine whether file with model magnitudes should be output
 	OUTPUT:      bin -- Binary star data
 	                  0-1: Primary / Secondary Mass
 	                  2-5: Zeros
 	                  6-23: Magnitudes
-	"""
+	FILE OUTPUT: iso.m[dm].a[age].bin -- File containing data on binaries generated for this run.
+	                  0-1: Primary / Secondary Mass
+	                  2-18: UBVRIugrizJHK[3][4][5][8] Magnitudes
+	'''
 	
 	# Create initial matrix to hold all binary models
 	bmod = np.zeros([iso.shape[0]**2+iso.shape[0]+1, 23])
@@ -73,6 +77,14 @@ def makebin(iso, options, file_output=True):
 
 
 def makesynth(mag, binary, options):
+	'''
+	SUBROUTINE:			MAKESYNTH
+	DESCRIPTION: Generates synthetic star dataset for testing routines.
+	INPUT:       mag -- matrix of observed UBVRIugrizJHK[3][4][5][8] magnitudes + uncertainties
+	             binary -- matrix of binary star data from MAKEBIN
+	             options -- parameters dictionary from READOPT
+	OUTPUT:      synth -- matrix of UBVRIugrizJHK[3][4][5][8] magnitudes + uncertainties. Copy of mag structure from READDATA for the synthetic dataset.
+	'''
 	# Find range of magnitudes for V or g
 	err_mag = 12
 	if len(mag[mag[:,err_mag] < 80, err_mag]) == 0: err_mag = 4

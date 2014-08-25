@@ -7,20 +7,25 @@ from .kernel import sedkernel
 import sys
 
 def sedfit(singles, binary, mag, options, chicut=10.0, nvis=2, nnir=2, nmir=2):
-	"""SEDFIT
+	'''
+	SUBROUTINE:			SEDFIT
 	DESCRIPTION: Nearest-neighbor comparison between star data and synthetic models
-	INPUT:       singles -- isochrone data from readiso, minterp or fidiso
-	             binary -- synthetic binary model data from makebin
-	             mag -- star magnitude array from readdata
-	             options -- parameter dictionary from readopt
+	INPUT:       singles -- isochrone data from READISO, MINTERP or FIDISO
+	             binary -- synthetic binary model data from MAKEBIN
+	             mag -- star magnitude array from READDATA
+	             options -- parameter dictionary from READOPT
+	             chicut (optional, default = 10) -- minimum value a sum element must have to be added to total
+	             nvis (optional, default = 2) -- minimum number of 'good' optical filters necessary to compute masses
+	             nnir (optional, default = 2) -- minimum number of 'good' near-IR filters necessary to compute masses
+	             nmir (optional, default = 2) -- minimum number of 'good' mid-IR filters necessary to compute masses
 	OUTPUT:      4D matrix of mass determination information. Axes are:
-	                 0: Star index. Aligns with data
+	                 0: Star index. Aligns with mag
 	                 1: 0 = fit chi value
 	                    1 = best-fit binary model index. Aligns with binary
 	                 2: Iteration index
 	                 3: 0 = fitting results when compared to all binaries
 	                    1 = fitting results when compared to only singles
-	"""
+	'''
 	
 	# Prepare OpenCL routine
 	kernelstr = sedkernel(nvis,nnir,nmir)
@@ -126,6 +131,27 @@ def sedfit(singles, binary, mag, options, chicut=10.0, nvis=2, nnir=2, nmir=2):
 	
 
 def summarize(results, binary, singles):
+	'''
+	SUBROUTINE:			SUMMARIZE
+	DESCRIPTION: Summarizes SED results into best-fit masses and uncertainties
+	INPUT:       results -- full SED fitting results. Output from SEDFIT
+	             binary -- synthetic binary model data from MAKEBIN
+	             singles -- isochrone data from READISO, MINTERP or FIDISO
+	OUTPUT:      summary -- Summarized BINOCS results
+	                 0: best-fit primary mass
+	                 1: uncertainty on primary mass
+	                 2: best-fit secondary mass
+	                 3: uncertainty on secondary mass
+	                 4: average \Sigma per filter
+	                 5: best-fit single star model mass
+	                 6: uncertainty in single star model mass
+	                 7: average \Sigma per filter for single star model matches
+	                 8: binary flag
+	                     0: unknown
+	                     1: single
+	                     2: binary
+	                    -1: non-member
+	'''
 	summary = np.zeros([results.shape[0], 9])
 	for s in range(results.shape[0]):
 		starchi, staridx, singlechi, singleidx = results[s, 1, :, 0], results[s, 0, :, 0], results[s, 1, :, 1], results[s, 0, :, 1]

@@ -1,15 +1,15 @@
 # BINOCS OpenCL kernel subroutines
 
 def sedkernel(nopt, nnir, nmir, type="default"):
-	"""SEDKERNEL
+	'''
+	SUBROUTINE:			SEDKERNEL
 	DESCRIPTION: Returns chosen OpenCL SED kernel
 	INPUT:       nopt -- number of good optical filters
 	             nnir -- number of good near IR filters
 	             nmir -- number of good mid IR filters
-	             type -- (optional) string determining type of kernel to be returned
-	                   "chi", "default"
+	             type -- (optional) string determining type of kernel to be returned. Choices = ["chi", "default"]
 	OUTPUT:      kernelstr -- string containing C program to be compiled
-	"""
+	'''
 	
 	# Chi^2 Kernel
 	if type == "chi":

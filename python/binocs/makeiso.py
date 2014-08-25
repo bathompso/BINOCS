@@ -5,6 +5,22 @@ import numpy as np
 
 
 def padova(path, outpath):
+	'''
+	SUBROUTINE:			PADOVA
+	DESCRIPTION: Converts files downloaded from Padova's CMD web interface [http://stev.oapd.inaf.it/cgi-bin/cmd] to a usable format
+	INPUT:       path -- Path of folder containing the downloaded Padova web files
+	             outpath -- Path to folder to hold output
+	OUTPUT:      NONE
+	FILE OUTPUT: '[outpath]/iso_[FeH].pv.syn.dat' -- File holding isochrone star information to be read into BINOCS
+	                 0: log[Age] of isochrone
+	                 1: Initial mass
+	                 2: Actual mass (at specified age)
+	                 3: log[Luminosity]
+	                 4: log[g] (surface gravity)
+	                 5: log[Temperature]
+	                 6: Bolometric magnitude
+	                 7-23: UBVRIugrizJHK[3][4][5][8] magnitudes
+	'''
 	# Detect what files are present in path directory
 	webfiles = subprocess.check_output("ls "+path+"*.dat", shell=True).splitlines()
 	# Loop through detected files and get [Fe/H]
@@ -75,6 +91,22 @@ def padova(path, outpath):
 
 
 def parsec(path, outpath):
+	'''
+	SUBROUTINE:			PARSEC
+	DESCRIPTION: Converts files downloaded from PARSEC's CMD web interface [http://stev.oapd.inaf.it/cgi-bin/cmd] to a usable format
+	INPUT:       path -- Path of folder containing the downloaded PARSEC web files
+	             outpath -- Path to folder to hold output
+	OUTPUT:      NONE
+	FILE OUTPUT: '[outpath]/iso_[FeH].pc.syn.dat' -- File holding isochrone star information to be read into BINOCS
+	                 0: log[Age] of isochrone
+	                 1: Initial mass
+	                 2: Actual mass (at specified age)
+	                 3: log[Luminosity]
+	                 4: log[g] (surface gravity)
+	                 5: log[Temperature]
+	                 6: Bolometric magnitude
+	                 7-23: UBVRIugrizJHK[3][4][5][8] magnitudes
+	'''
 	# Detect what files are present in path directory
 	webfiles = subprocess.check_output("ls "+path+"*.dat", shell=True).splitlines()
 	# Loop through detected files and get [Fe/H]
@@ -140,6 +172,22 @@ def parsec(path, outpath):
 
 
 def dartmouth(path, outpath):
+	'''
+	SUBROUTINE:			DARTMOUTH
+	DESCRIPTION: Converts files downloaded from Dartmouth's web interface [http://stellar.dartmouth.edu/models/isolf_new.html] to a usable format
+	INPUT:       path -- Path of folder containing the downloaded Dartmouth web files
+	             outpath -- Path to folder to hold output
+	OUTPUT:      NONE
+	FILE OUTPUT: '[outpath]/iso_[FeH].dm.syn.dat' -- File holding isochrone star information to be read into BINOCS
+	                 0: log[Age] of isochrone
+	                 1: Initial mass
+	                 2: Actual mass (at specified age)
+	                 3: log[Luminosity]
+	                 4: log[g] (surface gravity)
+	                 5: log[Temperature]
+	                 6: Bolometric magnitude
+	                 7-23: UBVRIugrizJHK[3][4][5][8] magnitudes
+	'''
 	# Detect what files are present in path directory
 	webfiles = subprocess.check_output("ls "+path+"*.iso", shell=True).splitlines()
 	# Loop through detected files and get [Fe/H]
@@ -207,22 +255,4 @@ def dartmouth(path, outpath):
 		of.close()
 		
 
-
-
-def makeiso(isopath, outpath):
-	tmp = [x for x in subprocess.check_output("ls "+isopath+"*", shell=True).splitlines() if x.find('.dat') >= 0]
-	if len(tmp) == 0:
-		print("\n!!! Dartmouth Isochrones Detected.\n")
-		dartmouth(isopath, outpath)
-	else:
-		testfile = tmp[0]
-		df = open(testfile, 'r')
-		lines = df.read().splitlines()
-		df.close()
-		if lines[1].find('Marigo') >= 0:
-			print("\n!!! Padova Isochrones Detected.\n")
-			padova(isopath, outpath)
-		elif lines[1].find('PARSEC') >= 0:
-			print("\n!!! PARSEC Isochrones Detected.\n")
-			parsec(isopath, outpath)
 		

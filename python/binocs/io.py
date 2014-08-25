@@ -4,11 +4,12 @@ import numpy as np
 import sys
 
 def readopt(optname):
-	""" READOPT:
+	'''
+	SUBROUTINE:			READOPT
 	DESCRIPTION: Reads in option file to dictionary
 	INPUT:       optname -- name of input BINOCS option file
 	OUTPUT:      options -- dictionary containing all important parameters
-	"""
+	'''
 
 	filter_names = ['U', 'B', 'V', 'R', 'I', 'SU', 'SG', 'SR', 'SI', 'SZ', 'J', 'H', 'K', 'B1', 'B2', 'B3', 'B4']
 	ak = [1.531, 1.324, 1.000, 0.748, 0.482, 1.593, 1.199, 0.858, 0.639, 0.459, 0.282, 0.175, 0.112, 0.0627, 0.0482, 0.0482, 0.0482]
@@ -53,15 +54,16 @@ def readopt(optname):
 
 
 def readdata(options):
-	"""READDATA:
+	'''
+	SUBROUTINE:			READDATA
 	DESCRIPTION: Reads in star data from a magnitude file created by PAYST
-	INPUT:       options -- parameter dictionary from readopt
+	INPUT:       options -- parameter dictionary from READOPT
 	OUTPUT:      info -- star information
 	                  2MASS (or equivalent) ID
 	                  RA / Dec Coordinates
 	                  RV Variability Index: 0 = Unkown, 1 = Single, 2 = Binary, -1 = Non-Member
 	             mag -- matrix of UBVRIugrizJHK[3][4][5][8] magnitudes + uncertainties
-	"""
+	'''
 	
 	print("\nReading in data from file...", end='')
 	sys.stdout.flush()
@@ -96,14 +98,15 @@ def readdata(options):
 	
 
 def readiso(options):
-	"""READISO
-	DESCRIPTION: Read in isochrone data from a file created by makeiso
-	INPUT:       options -- parameter dictionary from readopt
+	'''
+	SUBROUTINE:			READISO
+	DESCRIPTION: Read in isochrone data from a file created by MAKEISO
+	INPUT:       options -- parameter dictionary from READOPT
 	OUTPUT:      miso -- Matrix of isochrone data.
 	                0-1: Primary / Secondary Mass
 	                2-5: Parameters: LogL, LogT, LogG, Mbol
 	                6-22: Magnitudes
-	"""
+	'''
 	
 	# Read in isochrone from file
 	isofile = open(options['iso'], 'r')

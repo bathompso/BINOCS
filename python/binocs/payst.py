@@ -32,6 +32,15 @@ def savemag(dataarr, mag, mempct, memchar, index, filters, maxerr):
 		
 
 def paystmatch(optname, minradius, maxerr=0.1):
+	'''
+	SUBROUTINE:			PAYSTMATCH
+	DESCRIPTION: Matches individual photometry datasets together, and outputs a binocs-formatted master file
+	INPUT:       optname -- name of PAYST option file
+	             minradius -- maximum radius (in degrees) between two sources that can be considered a match
+	             maxerr (optional, default = 0.1) -- Maximum photometric uncertainty a source can have to be added to the master catalog
+	OUTPUT:      NONE
+	FILE OUTPUT: '[cluster].Merged.txt' -- File containing merged dataset. Format specified in main PAYST routine.
+	'''
 	# Define variables
 	maxlines, nfiles, ctr, oldctr = 0, 0, 0, 0
 	masterfilters = ['U', 'B', 'V', 'R', 'I', 'SU', 'SG', 'SR', 'SI', 'SZ', 'J', 'H', 'K', 'B1', 'B2', 'B3', 'B4', 'B5', 'B6']
@@ -235,6 +244,13 @@ def paystmatch(optname, minradius, maxerr=0.1):
 	
 	
 def paysttrim(catalog):
+	'''
+	SUBROUTINE:			PAYSTTRIM
+	DESCRIPTION: Trims matched PAYST dataset
+	INPUT:       catalog -- filename of matched dataset from PAYSTMATCH
+	OUTPUT:      NONE
+	FILE OUTPUT: '[cluster].Trimmed.txt' -- Trimmed dataset. Same format as PAYSTMATCH output file. Format specified in main PAYST routine.
+	'''
 	# Define variables
 	masterfilters = ['U', 'B', 'V', 'R', 'I', 'SU', 'SG', 'SR', 'SI', 'SZ', 'J', 'H', 'K', 'B1', 'B2', 'B3', 'B4', 'B5', 'B6']
 	ak = [1.531, 1.324, 1.000, 0.748, 0.482, 1.593, 1.199, 0.858, 0.639, 0.459, 0.282, 0.175, 0.112, 0.0627, 0.0482, 0.0482, 0.0482]
