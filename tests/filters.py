@@ -45,6 +45,9 @@ try:
 			if len(sec_err) > 0: data_errors[l,3] = np.mean(sec_err) + np.std(sec_err)
 			else: data_errors[l,3] = -1
 			
+			# Above 2 M_sun, the primary completely dominates small mass-ratio systems
+			if data[l,0] > 2: data_errors[l,1], data_errors[l,3] = -1, -1
+			
 		# Collapse percent errors into grid
 		for q in range(11):
 			bin_pri = [data_errors[x,1] for x in range(data_errors.shape[0]) if data_errors[x,2] / data_errors[x,0] >= q/10 and data_errors[x,2] / data_errors[x,0] < (q+1)/10 and data_errors[x,1] >= 0]

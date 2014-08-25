@@ -9,63 +9,63 @@ import sys, binocs
 	INPUT: [From command line] BINOCS option file, specifying data file and isochrone to be used.
 	OUTPUT: None
 	FILE OUTPUT: "binocs_thresh.%02d.dat" -- Output summary file for each threshold value used.
-	                 Columns: [B Magnitude] [V Magnitude] [J Magnitude] [K Magnitude] [Actual Membership Flag] [Derived Membership Flag]
+	                 Columns: [Primary Mass] [Secondary Mass] [B Magnitude] [V Magnitude] [J Magnitude] [K Magnitude] [Actual Membership Flag] [Derived Membership Flag]
 	                 Membership Flags: 0 = Non-Member; 1 = Member
 '''
 
-# Read in data from files
-options = binocs.readopt((sys.argv)[1])
-info, mag = binocs.readdata(options)
-oiso = binocs.readiso(options)
-
-# Interpolate isochrone to new mass grid
-singles = binocs.minterp(oiso, options['dm'])
-
-# Adjust isochrone to empirical ridgeline, if necessary
-singles = binocs.fidiso(singles, options)
-
-# Create binary array
-binary = binocs.makebin(singles, options)
-
-# Make synthetic dataset
-single_synth = binocs.makesynth(mag, binary, options)
-synth = np.zeros([3*single_synth.shape[0], single_synth.shape[1]])
-synthlen = single_synth.shape[0]
-synth[0:synthlen,:] = single_synth[:,:]
-synth[synthlen:2*synthlen,:] = single_synth[:,:]
-synth[2*synthlen:3*synthlen,:] = single_synth[:,:]
-for f in range(17):
-	synth[synthlen:2*synthlen,2*f] += 0.8
-	synth[2*synthlen:3*synthlen,2*f] -= 0.8
-	
-print("\nCreated synthetic set with %d stars." % (synth.shape[0]))
-
-# Loop through different threshold values
 thresholds = range(5,20)
-confusion_matrix = np.zeros([len(thresholds), 2])
-for t in range(len(thresholds)):
-	print("\nWorking on threshold %.1f..." % (thresholds[t]))
 
-	# Run SED fitting on entire synthetic set
-	results = binocs.sedfit(singles, binary, synth, options, chicut=thresholds[t])
-	summary = binocs.summarize(results, binary, singles)
+# Output files exist, read in this data and print to terminal
+try:
+	# Check to see whether files already exist
+	out_files = subprocess.check_output("ls binocs_thresh*", shell=True).splitlines()
 	
-	# Missed percentage
-	confusion_matrix[t,0] = len([x for x in range(synthlen) if summary[x,0] == 0]) / synthlen
+	confusion_matrix = np.zeros([len(out_files), 3])
+	for f in range(len(out_files)):
+		this_threshold = float(outfiles[f][14:16])
+		confusion_matrix[f,0] = this_threshold
+		
+		data = np.loadtxt(out_files[f])
+		true_members, true_non = data[data[:,6] == 1,:], data[data[:,6] == 0,:]
+		confusion_matrix[f,1] = true_members[true_members[:,7] == 1,:].shape[0] / true_members.shape[0]
+		confusion_matrix[f,2] = true_non[true_non[:,7] == 0,:].shape[0] / true_non.shape[0]
+		
+except:
+	options = binocs.readopt((sys.argv)[1])
+	info, mag = binocs.readdata(options)
+	oiso = binocs.readiso(options)
+	singles = binocs.minterp(oiso, options['dm'])
+	singles = binocs.fidiso(singles, options, file_output=False)
+	binary = binocs.makebin(singles, options, file_output=False)
+	single_synth = binocs.makesynth(mag, binary, options)
 	
-	# Contamination percentage
-	confusion_matrix[t,1] = len([x for x in range(2*synthlen) if summary[x+synthlen,0] > 0]) / (2*synthlen)
+	synth = np.zeros([3*single_synth.shape[0], single_synth.shape[1]])
+	synthlen = single_synth.shape[0]
+	synth[0:synthlen,:] = single_synth[:,:]
+	synth[synthlen:2*synthlen,:] = single_synth[:,:]
+	synth[2*synthlen:3*synthlen,:] = single_synth[:,:]
+	for f in range(17):
+		synth[synthlen:2*synthlen,2*f] += 0.8
+		synth[2*synthlen:3*synthlen,2*f] -= 0.8
 	
-	# Print results to file
-	of = open("binocs_thresh.%02d.dat" % (t), 'w')
-	for l in range(synth.shape[0]):
-		if l < synthlen: member = 1
-		else: member = 0
-		if summary[l,0] > 0: result = 1
-		else: result = 0
-		print("%8.3f %8.3f %8.3f %8.3f   %d %d" % (synth[l,2], synth[l,4], synth[l,20], synth[l,24], member, result), file=of)
-	of.close()
+	print("\nCreated synthetic set with %d stars." % (synth.shape[0]))
 
-print("\n")	
-for t in range(len(thresholds)):
-	print("%5.1f  %5.1f %5.1f " % (thresholds[t], confusion_matrix[t,0]*100, confusion_matrix[t,1]*100))
+	# Loop through different threshold values
+	confusion_matrix = np.zeros([len(thresholds), 2])
+	for t in range(len(thresholds)):
+		print("\nWorking on threshold %.1f..." % (thresholds[t]))
+
+		# Run SED fitting on entire synthetic set
+		results = binocs.sedfit(singles, binary, synth, options, chicut=thresholds[t])
+		summary = binocs.summarize(results, binary, singles)
+	
+		# Print results to file
+		of = open("binocs_thresh.%02d.dat" % (thresholds[t]), 'w')
+		for l in range(synth.shape[0]):
+			bidx = l % single_synth.shape[0]
+			if l < synthlen: member = 1
+			else: member = 0
+			if summary[l,0] > 0: result = 1
+			else: result = 0
+			print("%9.4f %9.4f  %8.3f %8.3f %8.3f %8.3f   %d %d" % (binary[bidx,0], binary[bidx,1], synth[l,2], synth[l,4], synth[l,20], synth[l,24], member, result), file=of)
+		of.close()
