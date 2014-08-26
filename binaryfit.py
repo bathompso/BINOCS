@@ -83,7 +83,7 @@ for m in range(len(minq_mod)):
 print("    Writing minimum mass ratio results to '%s--minq.txt'" % (options['data']))
 out = open(options['data']+"--minq.txt", "w")
 for m in range(len(minq_synth)):
-	print("%5.2f  %5.3f  %5.3f" % (m*minq_dm, minq_synth[m], minq_mod[m]), file=out)
+	print("%5.2f  %5.3f  %5.3f  %5.3f" % (m*minq_dm, minq_synth[m], minq_mod[m], max([minq_synth[m], minq_mod[m], 0.3])), file=out)
 out.close()
 
 #### UPDATED RESULTS
