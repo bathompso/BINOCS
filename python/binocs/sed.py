@@ -6,7 +6,7 @@ from time import time
 from .kernel import sedkernel
 import sys
 
-def sedfit(singles, binary, mag, options, chicut=10.0, nvis=2, nnir=2, nmir=2):
+def sedfit(singles, binary, mag, options, chicut=10.0, nvis=3, nnir=3, nmir=2):
 	'''
 	SUBROUTINE:			SEDFIT
 	DESCRIPTION: Nearest-neighbor comparison between star data and synthetic models
