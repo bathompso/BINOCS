@@ -59,7 +59,7 @@ def makebin(iso, options, file_output=True):
 		if len(options['data'].split('/')) == 1: outdir = ''
 		else: outdir = '/'.join(options['data'].split('/')[0:len(options['data'].split('/'))-1]) + '/'
 	
-		if options['fid'] == '': basename = 'iso'
+		if 'fid' not in options.keys(): basename = 'iso'
 		else: basename = options['fid'].split('/')[-1].split('.')[0]
 	
 		binoutname = "%s%s.m%03d.a%05d.bin" % (outdir, basename, options['dm']*100, options['age']*1000)

@@ -87,7 +87,7 @@ def fidiso(iso, options, file_output=True):
 	'''
 	
 	# Check to see if this operation is necessary
-	if options['fid'] == '': return iso
+	if 'fid' not in options.keys(): return iso
 
 	# Create new list to hold adjusted isochrone
 	fiso = np.zeros(iso.shape)
