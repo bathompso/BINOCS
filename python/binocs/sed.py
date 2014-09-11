@@ -3,10 +3,9 @@ from __future__ import print_function, division
 import numpy as np
 import pyopencl as cl
 from time import time
-from .kernel import sedkernel
-import sys
+import sys, os
 
-def sedfit(singles, binary, mag, options, chicut=10.0, nvis=3, nnir=3, nmir=2):
+def sedfit(singles, binary, mag, options, chicut=10.0, nvis=3, nnir=3, nmir=2, chi=False):
 	'''
 	SUBROUTINE:			SEDFIT
 	DESCRIPTION: Nearest-neighbor comparison between star data and synthetic models
@@ -27,8 +26,14 @@ def sedfit(singles, binary, mag, options, chicut=10.0, nvis=3, nnir=3, nmir=2):
 	                    1 = fitting results when compared to only singles
 	'''
 	
+	# Read in specified kernel
+	pwd = os.path.dirname(os.path.realpath(__file__))
+	if chi: df = open("%s/kernel/binocs_chi.c" % pwd, 'r')
+	else: df = open("%s/kernel/binocs.c" % pwd, 'r')
+	kernelstr = df.read().replace('GOODOPTICAL', '%d' % nvis).replace('GOODNEARIR', '%d' % nnir).replace('GOODMIDIR', '%d' % nmir)
+	df.close()
+
 	# Prepare OpenCL routine
-	kernelstr = sedkernel(nvis,nnir,nmir)
 	context = cl.create_some_context()
 	queue = cl.CommandQueue(context)
 	program = cl.Program(context, kernelstr).build()
