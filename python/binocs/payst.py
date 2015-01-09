@@ -328,7 +328,7 @@ def paysttrim(catalog):
 			namesplit = dirsplit[len(dirsplit)-1].split('.')
 			try:
 				import astropy.coordinates as astrocoo
-				c = astrocoo.ICRS.from_name(namesplit[0])
+				c = astrocoo.get_icrs_coordinates(namesplit[0])
 				clra = c.ra.deg
 				cldec = c.dec.deg
 				print("Cluster coordinates: %9.5f  %9.5f" % (clra, cldec))
