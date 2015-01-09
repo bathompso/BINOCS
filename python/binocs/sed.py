@@ -5,7 +5,7 @@ import pyopencl as cl
 from time import time
 import sys, os
 
-def sedfit(singles, binary, mag, options, chicut=10.0, nvis=3, nnir=3, nmir=2, chi=False):
+def sedfit(singles, binary, mag, options, chicut=7.0, nvis=3, nnir=3, nmir=2, chi=False):
 	'''
 	SUBROUTINE:			SEDFIT
 	DESCRIPTION: Nearest-neighbor comparison between star data and synthetic models
