@@ -30,7 +30,7 @@ try:
 		true_members, true_non = data[data[:,6] == 1,:], data[data[:,6] == 0,:]
 		confusion_matrix[f,1] = true_members[true_members[:,7] == 0,:].shape[0] / true_members.shape[0] * 100
 		confusion_matrix[f,2] = true_non[true_non[:,7] == 1,:].shape[0] / true_non.shape[0] * 100
-		print("%4.1f  %5.1f %5.1f" % (confusion_matrix[f,0], confusion_matrix[f,1], confusion_matrix[f,2]))
+		print("%4.1f  %5.1f %5.1f %5.1f" % (confusion_matrix[f,0], confusion_matrix[f,1], confusion_matrix[f,2], confusion_matrix[f,1] + confusion_matrix[f,2]))
 	
 except Exception as e:
 	options = binocs.readopt((sys.argv)[1])
